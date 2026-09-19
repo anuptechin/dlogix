@@ -37,7 +37,9 @@ const money = (v: number, cur: keyof typeof SYMBOL = 'inr') =>
 
 export default function CalculatorPage() {
   const [carrier, setCarrier] = useState<CourierCarrier>('DHL');
-  const [result, setResult] = useState<ExportCalcResult | null>(null);
+  // Each carrier keeps its OWN result so switching tabs never shows the other's.
+  const [results, setResults] = useState<Partial<Record<CourierCarrier, ExportCalcResult>>>({});
+  const result = results[carrier] ?? null;
   const [form] = Form.useForm();
   const { data: me } = useSession();
   const showSettings = canManage(me?.role);
@@ -49,11 +51,10 @@ export default function CalculatorPage() {
   });
   const hasCard = (countries?.length ?? 0) > 0;
 
-  // Keep the entered data & result when switching carriers; the user clears
-  // manually via the Clear button.
+  // Clear the CURRENT tab's form + result (the other tab is untouched).
   const clearAll = () => {
     form.resetFields();
-    setResult(null);
+    setResults((prev) => ({ ...prev, [carrier]: undefined }));
   };
 
   const calcMut = useMutation({
@@ -67,7 +68,7 @@ export default function CalculatorPage() {
         heightCm: v.heightCm as number | undefined,
         actualWeightKg: v.actualWeightKg as number | undefined,
       }),
-    onSuccess: setResult,
+    onSuccess: (res) => setResults((prev) => ({ ...prev, [carrier]: res })),
     onError: (err: unknown) => {
       const m =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -112,13 +113,39 @@ export default function CalculatorPage() {
       </Space>
 
       <Segmented
-        options={[
-          { label: 'DHL', value: 'DHL' },
-          { label: 'FedEx', value: 'FEDEX' },
-        ]}
+        block
+        size="large"
         value={carrier}
         onChange={(v) => setCarrier(v as CourierCarrier)}
-        size="large"
+        style={{ padding: 6, background: '#eaf2fb' }}
+        options={[
+          {
+            value: 'DHL',
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px 4px', fontSize: 20, fontWeight: 700 }}>
+                DHL
+                {results.DHL && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#1e7fe6', background: '#dcebfb', borderRadius: 20, padding: '2px 9px' }}>
+                    quote ready
+                  </span>
+                )}
+              </span>
+            ),
+          },
+          {
+            value: 'FEDEX',
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px 4px', fontSize: 20, fontWeight: 700 }}>
+                FedEx
+                {results.FEDEX && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#1e7fe6', background: '#dcebfb', borderRadius: 20, padding: '2px 9px' }}>
+                    quote ready
+                  </span>
+                )}
+              </span>
+            ),
+          },
+        ]}
       />
 
       {!hasCard ? (
