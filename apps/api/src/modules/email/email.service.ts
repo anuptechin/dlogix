@@ -8,48 +8,54 @@ export interface EmailMessage {
   html?: string;
 }
 
-// Support both COLORWAY_SMTP_* (shared D'Decor mailbox) and generic SMTP_* names.
-const env = (k: string) => process.env[k];
-const SMTP_HOST = env('SMTP_HOST') ?? env('COLORWAY_SMTP_HOST');
-const SMTP_PORT = Number(env('SMTP_PORT') ?? env('COLORWAY_SMTP_PORT') ?? 587);
-const SMTP_USER = env('SMTP_USER') ?? env('COLORWAY_SMTP_USER');
-const SMTP_PASS = env('SMTP_PASS') ?? env('COLORWAY_SMTP_PASS');
+// Read env at CALL time (not import time) — ConfigModule loads .env during
+// bootstrap, after this file is first imported. Supports SMTP_* and COLORWAY_SMTP_*.
+function smtpConfig() {
+  const host = process.env.SMTP_HOST ?? process.env.COLORWAY_SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT ?? process.env.COLORWAY_SMTP_PORT ?? 587);
+  const user = process.env.SMTP_USER ?? process.env.COLORWAY_SMTP_USER;
+  const pass = process.env.SMTP_PASS ?? process.env.COLORWAY_SMTP_PASS;
+  return { host, port, user, pass };
+}
 
 /**
  * Email delivery. EMAIL_TRANSPORT=smtp uses Office365 SMTP (STARTTLS on 587);
- * anything else (default 'console') logs to stdout so flows work without creds.
+ * anything else (default 'console') logs to stdout.
  */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger('EmailService');
-  private readonly transport = process.env.EMAIL_TRANSPORT ?? 'console';
-  private readonly from = process.env.EMAIL_FROM ?? SMTP_USER ?? 'logistics-portal@ddecor.com';
   private smtp?: Transporter;
 
   private smtpTransport(): Transporter | null {
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    const { host, port, user, pass } = smtpConfig();
+    if (!host || !user || !pass) {
       this.logger.warn('SMTP env not fully set — falling back to console email.');
       return null;
     }
     if (!this.smtp) {
       this.smtp = nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: SMTP_PORT === 465, // 465 = implicit TLS
-        requireTLS: SMTP_PORT !== 465, // 587 → force STARTTLS (Office365)
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
+        host,
+        port,
+        secure: port === 465, // 465 = implicit TLS
+        requireTLS: port !== 465, // 587 → force STARTTLS (Office365)
+        auth: { user, pass },
       });
     }
     return this.smtp;
   }
 
   async send(msg: EmailMessage): Promise<{ transport: string }> {
-    if (this.transport === 'smtp') {
+    const transport = process.env.EMAIL_TRANSPORT ?? 'console';
+    const from =
+      process.env.EMAIL_FROM ?? smtpConfig().user ?? 'logistics-portal@ddecor.com';
+
+    if (transport === 'smtp') {
       const t = this.smtpTransport();
       if (t) {
         try {
           await t.sendMail({
-            from: this.from,
+            from,
             to: msg.to,
             subject: msg.subject,
             text: msg.text,
@@ -68,7 +74,7 @@ export class EmailService {
       [
         '',
         '──────────── EMAIL ────────────',
-        `From:    ${this.from}`,
+        `From:    ${from}`,
         `To:      ${msg.to}`,
         `Subject: ${msg.subject}`,
         '',

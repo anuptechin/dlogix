@@ -20,8 +20,9 @@ import { generateToken } from '../../common/tokens';
 import { CreateEnquiryDto } from './dto/create-enquiry.dto';
 import { UpdateEnquiryDto } from './dto/update-enquiry.dto';
 
-const WEB_BASE_URL = process.env.WEB_BASE_URL ?? 'http://localhost:5103';
-const GRACE_HOURS = Number(process.env.VENDOR_TOKEN_GRACE_HOURS ?? 48);
+// Read at call time (env is loaded by ConfigModule after this file is imported).
+const webBaseUrl = () => process.env.WEB_BASE_URL ?? 'http://localhost:5103';
+const graceHours = () => Number(process.env.VENDOR_TOKEN_GRACE_HOURS ?? 48);
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -207,7 +208,7 @@ export class EnquiriesService {
     }
 
     for (const ev of enquiry.enquiryVendors) {
-      const link = `${WEB_BASE_URL}/quote/${ev.inviteToken}`;
+      const link = `${webBaseUrl()}/quote/${ev.inviteToken}`;
       const deadline = enquiry.quoteDeadline
         ? enquiry.quoteDeadline.toISOString().slice(0, 10)
         : 'at the earliest';
@@ -832,7 +833,7 @@ export class EnquiriesService {
 
   private computeExpiry(deadline: Date | null): Date {
     const base = deadline ?? new Date(Date.now() + 14 * 24 * 3600 * 1000);
-    return new Date(base.getTime() + GRACE_HOURS * 3600 * 1000);
+    return new Date(base.getTime() + graceHours() * 3600 * 1000);
   }
 
   // The signed-in user (from the request context set by the login cookie);
