@@ -11,11 +11,14 @@ the `api` + `web` containers. Web is published on **7079**.
    CREATE USER dlogix WITH PASSWORD 'a-strong-password';
    CREATE DATABASE dlogix OWNER dlogix;
    ```
-2. **Find the shared docker network name** (the one the shared PG + nginx use):
+2. **Find the two docker network names** — the shared Postgres and the shared
+   nginx may be on *different* networks. dlogix-api joins the DB's network,
+   dlogix-web joins the nginx network:
    ```bash
-   docker network ls
-   docker inspect <shared-postgres-container> -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
+   docker inspect <shared-postgres-container> -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'  # → DB_NETWORK
+   docker inspect nginx_proxy -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'                  # → PROXY_NETWORK
    ```
+   (On this host: DB `ddecor_db` → `crmuat_ddecor_internal`, nginx `nginx_proxy` → `shared_proxy`.)
 
 ## 1. Clone
 
@@ -31,7 +34,7 @@ cd dlogix
 cp .env.production.example .env.production
 nano .env.production
 ```
-Fill in: `SHARED_NETWORK`, `DATABASE_URL` (shared PG service name + the db/user above),
+Fill in: `DB_NETWORK`, `PROXY_NETWORK`, `DATABASE_URL` (PG container name + the db/user above),
 `SESSION_SECRET` (`openssl rand -hex 32`), `SMTP_PASS`. Leave
 `CORS_ORIGIN`/`WEB_BASE_URL` = `https://dlogix.ddecor.com`.
 
@@ -55,12 +58,17 @@ Seed logins (password fallback): `admin@ddecor.com`, `management@ddecor.com`,
 
 ## 5. Wire the shared nginx
 
-Copy `deploy/nginx/dlogix.ddecor.com.conf` into the shared nginx's config
-(adjust the cert paths + upstream to match your setup), ensure the shared nginx
-container is on `SHARED_NETWORK`, then reload:
+Put the wildcard cert in place (per-hostname filenames, `.crt` must be full chain)
+and copy the vhost into `nginx_proxy`'s conf.d, then reload:
 ```bash
-docker exec <shared-nginx-container> nginx -t && docker exec <shared-nginx-container> nginx -s reload
+cp /data/nginx-proxy/certs/colorstudio.ddecor.com.crt /data/nginx-proxy/certs/dlogix.ddecor.com.crt
+cp /data/nginx-proxy/certs/colorstudio.ddecor.com.key /data/nginx-proxy/certs/dlogix.ddecor.com.key
+cp deploy/nginx/dlogix.ddecor.com.conf /data/nginx-proxy/conf.d/dlogix.conf
+docker exec nginx_proxy nginx -t && docker exec nginx_proxy nginx -s reload
 ```
+`dlogix-web` joins `PROXY_NETWORK` (nginx's network) so the proxy resolves it by
+container name (`dlogix-web:80`). If nginx logs `host not found in upstream`, the
+web container isn't on that network — check `PROXY_NETWORK`.
 
 ## 6. Verify
 

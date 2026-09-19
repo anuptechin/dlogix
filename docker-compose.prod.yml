@@ -22,7 +22,7 @@ services:
       - .env.production
     networks:
       - internal
-      - shared
+      - dbnet
     # CMD runs `prisma migrate deploy` then starts the API (see apps/api/Dockerfile).
 
   web:
@@ -40,17 +40,24 @@ services:
     depends_on:
       - api
     ports:
-      - "7079:80" # host:container — shared nginx proxies here (or use the shared network)
+      - "7079:80" # host:container — also published as a fallback / direct access
     networks:
       - internal
-      - shared
+      - proxynet
 
 networks:
-  # api ↔ web talk here (web nginx → dlogix-api; not published)
+  # api ↔ web talk here (web nginx → dlogix-api:3093; not published)
   internal:
     driver: bridge
-  # the pre-existing shared network that hosts the shared Postgres + shared nginx.
-  # Set SHARED_NETWORK in .env.production to its real name (see `docker network ls`).
-  shared:
+  # Pre-existing network that hosts the shared Postgres (e.g. ddecor_db).
+  # dlogix-api joins it to reach the DB by container name.
+  # Set DB_NETWORK in .env.production (e.g. crmuat_ddecor_internal).
+  dbnet:
     external: true
-    name: ${SHARED_NETWORK}
+    name: ${DB_NETWORK}
+  # Pre-existing network that the shared nginx (nginx_proxy) is on.
+  # dlogix-web joins it so nginx_proxy can reach it by container name.
+  # Set PROXY_NETWORK in .env.production (e.g. shared_proxy).
+  proxynet:
+    external: true
+    name: ${PROXY_NETWORK}

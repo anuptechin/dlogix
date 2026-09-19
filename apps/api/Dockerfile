@@ -39,5 +39,7 @@ COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 # above — no separate apps/api/node_modules/.prisma copy (that path doesn't exist).
 WORKDIR /app/apps/api
 EXPOSE 3093
-# run pending migrations, then start
-CMD ["sh", "-c", "npm run prisma:migrate && node dist/main.js"]
+# run pending migrations, then start.
+# NOTE: nest build nests output under dist/src (sourceRoot=src), so the entry is
+# dist/src/main.js — NOT dist/main.js.
+CMD ["sh", "-c", "npm run prisma:migrate && node dist/src/main.js"]
