@@ -44,11 +44,19 @@ export default function LoginPage() {
         display: 'grid',
         placeItems: 'center',
         padding: 24,
-        background: 'linear-gradient(160deg, #eef5fd 0%, #e2eefb 55%, #d3e6f8 100%)',
+        backgroundColor: '#0a2a4e',
+        backgroundImage: 'url(/login-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <Card
-        style={{ width: 'min(420px, 100%)', boxShadow: '0 24px 60px -30px rgba(10,42,78,0.5)' }}
+        style={{
+          width: 'min(460px, 92vw)',
+          borderRadius: 16,
+          boxShadow: '0 30px 80px -24px rgba(10,42,78,0.65)',
+        }}
         styles={{ body: { padding: 32 } }}
       >
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
