@@ -1,0 +1,31 @@
+{
+  "name": "@lprms/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.6.1",
+    "@lprms/shared": "*",
+    "@tanstack/react-query": "^5.59.0",
+    "antd": "^5.21.2",
+    "axios": "^1.7.7",
+    "exceljs": "^4.4.0",
+    "pdfmake": "^0.2.12",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2"
+  },
+  "devDependencies": {
+    "@types/pdfmake": "^0.2.9",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8"
+  }
+}

@@ -1,0 +1,149 @@
+/* Dashboard KPI tiles + lightweight single-hue magnitude bars. */
+.dash__kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+.dash__kpi {
+  background: #fff;
+  border: 1px solid #e4eaf0;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.dash__kpi .k {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8a99a8;
+}
+.dash__kpi .v {
+  font-family: 'ff-good-web-pro-condensed', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.1;
+  color: #0a2540;
+  margin-top: 4px;
+}
+.dash__kpi .v.accent {
+  color: #1e7fe6;
+}
+.dash__kpi .sub {
+  font-size: 12px;
+  color: #8a99a8;
+  margin-top: 2px;
+}
+
+/* horizontal magnitude bars (single hue = teal) */
+.bar {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+}
+.bar__label {
+  font-size: 13px;
+  color: #16222e;
+}
+.bar__track {
+  height: 10px;
+  background: #eef2f6;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1e7fe6, #46a8ff);
+  border-radius: 5px;
+  min-width: 4px;
+}
+.bar__value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: #0a2540;
+  white-space: nowrap;
+}
+.winbar {
+  height: 8px;
+  width: 90px;
+  background: #eef2f6;
+  border-radius: 4px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.winbar > i {
+  display: block;
+  height: 100%;
+  background: #1e7fe6;
+  border-radius: 4px;
+}
+
+@media (max-width: 1100px) {
+  .dash__kpis { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .dash__kpis { grid-template-columns: repeat(2, 1fr); }
+  .bar { grid-template-columns: 90px 1fr auto; }
+}
+
+/* ── Enquiries-by-status: lifecycle bar chart ── */
+.statuschart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 2px;
+}
+.statusbar {
+  display: grid;
+  grid-template-columns: 104px 1fr 62px;
+  align-items: center;
+  gap: 12px;
+}
+.statusbar__label {
+  overflow: hidden;
+}
+.statusbar__track {
+  position: relative;
+  height: 22px;
+  background: #eef2f6;              /* warm recessive track */
+  border-radius: 6px;
+  overflow: hidden;
+}
+.statusbar__fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;              /* rounded data-end */
+  background: var(--brand-gradient); /* single measure = one hue (rose → brown) */
+  transform-origin: left center;
+  animation: statusgrow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.statusbar__fill.is-zero {
+  animation: none;
+}
+.statusbar__val {
+  text-align: right;
+  font-family: 'ff-good-web-pro-condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0a2540;
+}
+.statusbar__val em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 500;
+  color: #9c7c76;
+  margin-top: 2px;
+}
+@keyframes statusgrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statusbar__fill { animation: none; }
+}

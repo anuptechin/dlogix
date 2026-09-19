@@ -1,0 +1,137 @@
+/* Quote comparison matrix — vendors as columns, charges as rows. */
+.cmp__scroll {
+  overflow-x: auto;
+  border: 1px solid #e4eaf0;
+  border-radius: 12px;
+}
+.cmp {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  font-size: 14px;
+}
+.cmp th,
+.cmp td {
+  padding: 12px 16px;
+  text-align: right;
+  border-bottom: 1px solid #eef2f6;
+  white-space: nowrap;
+}
+.cmp thead th {
+  background: #0a2540;
+  color: #eaf2f7;
+  font-weight: 600;
+  vertical-align: top;
+  text-align: right;
+}
+.cmp .cmp__rowhead {
+  text-align: left;
+  color: #16222e;
+  font-weight: 500;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+}
+.cmp thead .cmp__rowhead {
+  background: #0a2540;
+  color: #eaf2f7;
+}
+.cmp__vendor-name {
+  font-family: 'ff-good-web-pro-condensed', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+.cmp__vendor-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: #9db3c6;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.cmp__num {
+  font-family: 'IBM Plex Mono', 'Consolas', monospace;
+}
+.cmp__muted {
+  color: #9db3c6;
+}
+.cmp tbody tr:hover td {
+  background: #f7fafc;
+}
+/* winning (lowest-total) column */
+.cmp .cmp__win {
+  background: rgba(30, 127, 230, 0.08);
+}
+.cmp thead th.cmp__win {
+  background: #1565c0;
+}
+.cmp tbody tr:hover td.cmp__win {
+  background: rgba(30, 127, 230, 0.12);
+}
+.cmp__total-row td {
+  border-top: 2px solid #d3dce5;
+  font-weight: 700;
+  font-size: 15px;
+  color: #0a2540;
+}
+.cmp__total-row .cmp__win {
+  color: #1565c0;
+}
+.cmp__lowtag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: #1e7fe6;
+  color: #fff;
+  font-family: 'ff-good-web-pro', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+.cmp__awaiting {
+  font-size: 12px;
+  color: #9db3c6;
+  font-style: italic;
+}
+/* awarded column (gold) */
+.cmp .cmp__awarded {
+  background: rgba(200, 149, 47, 0.10);
+}
+.cmp thead th.cmp__awarded {
+  background: #9a6f1f;
+}
+.cmp tbody tr:hover td.cmp__awarded {
+  background: rgba(200, 149, 47, 0.16);
+}
+.cmp__total-row .cmp__awarded {
+  color: #8a5f16;
+}
+.cmp__awardtag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: #c8952f;
+  color: #fff;
+  font-family: 'ff-good-web-pro', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+.cmp__decision-cell {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* BRD: landed-cost category subtotals */
+.cmp__subtotal-row td {
+  background: #f7fafc;
+  color: #52657a;
+  font-size: 12.5px;
+}
+.cmp__rowhead--sub {
+  padding-left: 22px !important;
+  font-weight: 600;
+  font-style: italic;
+}

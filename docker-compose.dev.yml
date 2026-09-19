@@ -1,0 +1,29 @@
+# Dev override: expose DB/Redis ports and enable hot-reload volumes.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      target: dev
+    command: npm run start:dev -w @lprms/api
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages/shared/src:/app/packages/shared/src
+    environment:
+      NODE_ENV: development
+
+  web:
+    build:
+      target: dev
+    command: npm run dev -w @lprms/web -- --host 0.0.0.0
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+    ports:
+      - "5103:5103"

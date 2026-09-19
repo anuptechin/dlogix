@@ -1,0 +1,87 @@
+/* Portal-wide typography — FF Good (Adobe Fonts / Typekit kit tdf7sjq).
+   Loaded in index.html; applied here to every element outside Ant Design
+   (Ant components get it via the ConfigProvider fontFamily token). */
+
+:root {
+  --font-sans: 'ff-good-web-pro', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-condensed: 'ff-good-web-pro-condensed', var(--font-sans);
+
+  /* ── Dlogix theme: navy → bright-blue gradient ── */
+  --brand-blue: #1e7fe6; /* primary */
+  --brand-blue-bright: #46a8ff;
+  --brand-sky: #7fc4ff;
+  --brand-navy: #0a2a4e;
+  --brand-navy-deep: #071a30;
+  --brand-cyan: #22c1d6; /* light accent */
+  --brand-accent: #f0a83a; /* warm accent (awarded/win) */
+  --brand-cream: #eef5fd;
+  --brand-gradient: linear-gradient(135deg, #46a8ff 0%, #1e7fe6 45%, #0d3f7a 100%);
+  --brand-gradient-strong: linear-gradient(135deg, #1e7fe6 0%, #14528f 50%, #071a30 100%);
+  --brand-gradient-soft: linear-gradient(160deg, #eef5fd 0%, #e6f0fb 55%, #dbe9f8 100%);
+  --brand-gradient-sider: linear-gradient(180deg, #071a30 0%, #0a2a4e 55%, #14528f 100%);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings and form controls should inherit the portal font explicitly
+   (some browsers/user-agents default buttons & inputs to a system font). */
+h1, h2, h3, h4, h5, h6,
+button, input, select, textarea {
+  font-family: var(--font-sans);
+}
+
+/* Opt-in helper for the condensed cut (e.g. dense tables, tags, stat labels). */
+.font-condensed {
+  font-family: var(--font-condensed);
+}
+
+/* ── Portal theme applied across the internal app shell (Ant Design) ──
+   Landing (.lp) and vendor portal (.rfq) paint their own grounds on top. */
+#root {
+  min-height: 100vh;
+  background: var(--brand-gradient-soft);
+  background-attachment: fixed;
+}
+.ant-layout {
+  background: transparent !important;
+}
+/* Sidebar: brown → rose gradient */
+.ant-layout-sider,
+.ant-layout-sider-children {
+  background: var(--brand-gradient-sider) !important;
+}
+.ant-menu.ant-menu-dark,
+.ant-menu-dark > .ant-menu,
+.ant-menu-dark .ant-menu-sub {
+  background: transparent !important;
+}
+.ant-menu-dark .ant-menu-item-selected {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+/* Header: white with a gradient accent underline */
+.ant-layout-header {
+  background: #fffdfc !important;
+  border-bottom: 3px solid transparent !important;
+  border-image: var(--brand-gradient) 1 !important;
+}
+/* Content cards sit on the soft ground with a warm border */
+.ant-card {
+  border-color: #efd9cf;
+}
+/* Primary buttons carry the full gradient */
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous) {
+  background: var(--brand-gradient) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(193, 74, 90, 0.28);
+}
+.ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
+  filter: brightness(1.06);
+}

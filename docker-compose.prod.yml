@@ -1,0 +1,56 @@
+# Dlogix — production stack for the shared-infra server.
+# Uses the host's SHARED Postgres and SHARED nginx (both already running in
+# Docker). This stack builds only the api + web containers — NO own db/nginx.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# The web container serves the SPA and reverse-proxies /api → api (single
+# origin at https://dlogix.ddecor.com). The shared nginx terminates TLS with
+# the wildcard cert and proxies dlogix.ddecor.com → dlogix-web.
+name: dlogix
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: prod
+    image: dlogix-api:latest
+    container_name: dlogix-api
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    networks:
+      - internal
+      - shared
+    # CMD runs `prisma migrate deploy` then starts the API (see apps/api/Dockerfile).
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: prod
+      args:
+        # Same-origin: the SPA calls /api, proxied to the api container by the
+        # web nginx. No CORS, cookie stays same-site.
+        VITE_API_BASE_URL: /api
+    image: dlogix-web:latest
+    container_name: dlogix-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "7079:80" # host:container — shared nginx proxies here (or use the shared network)
+    networks:
+      - internal
+      - shared
+
+networks:
+  # api ↔ web talk here (web nginx → dlogix-api; not published)
+  internal:
+    driver: bridge
+  # the pre-existing shared network that hosts the shared Postgres + shared nginx.
+  # Set SHARED_NETWORK in .env.production to its real name (see `docker network ls`).
+  shared:
+    external: true
+    name: ${SHARED_NETWORK}
