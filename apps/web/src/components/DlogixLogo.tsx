@@ -17,8 +17,8 @@ export function DlogixLogo({
       <DlogixMark size={size} />
       {showWord && (
         <span
+          className="dlx-wordmark"
           style={{
-            fontFamily: "'ff-good-web-pro-condensed', 'Segoe UI', system-ui, sans-serif",
             fontWeight: 700,
             fontSize: size * 0.82,
             letterSpacing: '0.2px',

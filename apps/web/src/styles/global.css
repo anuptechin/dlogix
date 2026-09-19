@@ -55,6 +55,14 @@ body {
   font-family: var(--font-condensed);
 }
 
+/* The Dlogix wordmark is a brand element — keep its condensed FF Good cut.
+   A class selector beats the `*` override above (both !important). */
+.dlx-wordmark,
+.dlx-wordmark * {
+  font-family: 'ff-good-web-pro-condensed', 'ff-good-web-pro', 'Segoe UI',
+    system-ui, sans-serif !important;
+}
+
 /* ── Portal theme applied across the internal app shell (Ant Design) ──
    Landing (.lp) and vendor portal (.rfq) paint their own grounds on top. */
 #root {
