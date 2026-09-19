@@ -4,7 +4,6 @@ import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getHealth, logLoginEvent, logout } from './api/client';
-import { DlogixLogo } from './components/DlogixLogo';
 import { useSession, canManage, isAdmin } from './auth/useSession';
 
 const { Header, Sider, Content } = Layout;
@@ -96,7 +95,21 @@ export default function AppShell() {
             textAlign: 'center',
           }}
         >
-          <DlogixLogo tone="light" size={30} />
+          <span
+            style={{
+              display: 'inline-flex',
+              background: '#fff',
+              borderRadius: 12,
+              padding: '10px 16px',
+              boxShadow: '0 8px 20px -10px rgba(0,0,0,0.5)',
+            }}
+          >
+            <img
+              src="/dlogix-logo.png"
+              alt="Dlogix"
+              style={{ height: 34, display: 'block' }}
+            />
+          </span>
           <div
             style={{
               color: 'rgba(255,255,255,0.55)',

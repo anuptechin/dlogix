@@ -85,9 +85,9 @@ export default function LoginPage() {
       <Card styles={{ body: { padding: 32 } }}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <img
-            src="/dlogix-logo-full.png"
+            src="/dlogix-logo.png"
             alt="Dlogix — Export Logistics Made Simple"
-            style={{ width: '100%', maxWidth: 300, margin: '0 auto', display: 'block' }}
+            style={{ width: '100%', maxWidth: 260, margin: '0 auto', display: 'block' }}
           />
         </div>
         <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 22 }}>
