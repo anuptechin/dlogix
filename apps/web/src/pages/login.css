@@ -1,0 +1,143 @@
+/* Dlogix sign-in — full-bleed port photo + live overlay text (FF Good).
+   All text uses the portal font via the global rule; no baked-in image text. */
+
+.dlx-login {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #0a2a4e;
+  background-image: url(/login-bg.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+/* Legibility scrim — darker at the edges where the side text sits. */
+.dlx-login::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(6, 22, 44, 0.78) 0%,
+      rgba(6, 22, 44, 0.4) 30%,
+      rgba(6, 22, 44, 0.3) 62%,
+      rgba(6, 22, 44, 0.66) 100%
+    ),
+    linear-gradient(180deg, rgba(6, 22, 44, 0.45) 0%, rgba(6, 22, 44, 0) 22%,
+      rgba(6, 22, 44, 0) 72%, rgba(6, 22, 44, 0.5) 100%);
+  pointer-events: none;
+}
+
+.dlx-login__top {
+  position: relative;
+  z-index: 2;
+  padding: 26px 40px 0;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 13px;
+}
+
+.dlx-login__body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 32px;
+  padding: 24px 48px 40px;
+}
+
+/* ── Left column: headline + tagline (top) and "trade without boundaries" (bottom) ── */
+.dlx-login__left {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  max-width: 440px;
+  padding: 24px 0;
+}
+.dlx-login__accent {
+  width: 54px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--brand-blue-bright, #46a8ff);
+  margin-bottom: 22px;
+}
+.dlx-login__headline {
+  font-size: clamp(34px, 3.4vw, 56px);
+  line-height: 1.05;
+  font-weight: 700;
+  margin: 0 0 20px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
+}
+.dlx-login__sub {
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 15px;
+  line-height: 2;
+  color: rgba(255, 255, 255, 0.9);
+}
+.dlx-login__foot {
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 14px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── Right column: feature list ── */
+.dlx-login__right {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  color: #fff;
+  justify-self: end;
+}
+.dlx-login__feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 16px;
+  white-space: nowrap;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+}
+.dlx-login__feature .anticon {
+  font-size: 20px;
+  color: var(--brand-sky, #7fc4ff);
+  width: 26px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+/* ── Center: the sign-in card ── */
+.dlx-login__card {
+  width: min(440px, 92vw);
+  justify-self: center;
+}
+.dlx-login__card .ant-card {
+  border-radius: 16px;
+  box-shadow: 0 34px 90px -28px rgba(6, 22, 44, 0.7);
+  border: none;
+}
+
+/* ── Responsive: drop the side panels, center the card ── */
+@media (max-width: 1024px) {
+  .dlx-login__body {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 16px 20px 32px;
+  }
+  .dlx-login__left,
+  .dlx-login__right {
+    display: none;
+  }
+}

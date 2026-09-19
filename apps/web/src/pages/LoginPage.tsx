@@ -1,11 +1,27 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
-import { MailOutlined, SafetyCertificateOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import {
+  MailOutlined,
+  SafetyCertificateOutlined,
+  ArrowLeftOutlined,
+  GlobalOutlined,
+  RocketOutlined,
+  FileProtectOutlined,
+  LineChartOutlined,
+} from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { requestOtp, verifyOtp } from '../api/client';
+import './login.css';
 
 const { Text, Link } = Typography;
+
+const FEATURES = [
+  { icon: <GlobalOutlined />, label: 'Global Reach' },
+  { icon: <RocketOutlined />, label: 'Reliable Shipping' },
+  { icon: <FileProtectOutlined />, label: 'Transparent Process' },
+  { icon: <LineChartOutlined />, label: 'Better Outcomes' },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -38,27 +54,35 @@ export default function LoginPage() {
   });
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 24,
-        backgroundColor: '#0a2a4e',
-        backgroundImage: 'url(/login-bg.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      <Card
-        style={{
-          width: 'min(460px, 92vw)',
-          borderRadius: 16,
-          boxShadow: '0 30px 80px -24px rgba(10,42,78,0.65)',
-        }}
-        styles={{ body: { padding: 32 } }}
-      >
+    <div className="dlx-login">
+      <div className="dlx-login__top">A D&rsquo;Decor Initiative</div>
+
+      <div className="dlx-login__body">
+        <div className="dlx-login__left">
+          <div>
+            <div className="dlx-login__accent" />
+            <h1 className="dlx-login__headline">
+              Global Trade
+              <br />
+              Made Simple
+            </h1>
+            <div className="dlx-login__sub">
+              Connecting Markets
+              <br />
+              Empowering Business
+            </div>
+          </div>
+          <div className="dlx-login__foot">
+            Trade
+            <br />
+            Without
+            <br />
+            Boundaries
+          </div>
+        </div>
+
+        <div className="dlx-login__card">
+      <Card styles={{ body: { padding: 32 } }}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <img
             src="/dlogix-logo-full.png"
@@ -146,6 +170,17 @@ export default function LoginPage() {
           Access is managed by your administrator. A one-time code is emailed each time you sign in.
         </Text>
       </Card>
+        </div>
+
+        <div className="dlx-login__right">
+          {FEATURES.map((f) => (
+            <div className="dlx-login__feature" key={f.label}>
+              {f.icon}
+              <span>{f.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
