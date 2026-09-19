@@ -5,7 +5,12 @@
 :root {
   --font-sans: 'ff-good-web-pro', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, Helvetica, Arial, sans-serif;
-  --font-condensed: 'ff-good-web-pro-condensed', var(--font-sans);
+  /* Single portal typeface — FF Good everywhere, no exceptions. The condensed
+     and mono aliases collapse to the same family so any var() usage stays FF Good. */
+  --font-condensed: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
 
   /* ── Dlogix theme: navy → bright-blue gradient ── */
   --brand-blue: #1e7fe6; /* primary */
@@ -31,14 +36,21 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings and form controls should inherit the portal font explicitly
-   (some browsers/user-agents default buttons & inputs to a system font). */
-h1, h2, h3, h4, h5, h6,
-button, input, select, textarea {
-  font-family: var(--font-sans);
+/* ── ONE font everywhere, no exceptions ──────────────────────────────────
+   Force FF Good on every element (incl. landing/quote/dashboard/comparison
+   that hardcode Plus Jakarta Sans, Caveat, IBM Plex Mono, Inter, etc. and any
+   inline font-family). Ant icons are SVG, so this doesn't affect iconography.
+   Keep tabular figures so number columns still line up without a mono font. */
+*,
+*::before,
+*::after {
+  font-family: var(--font-sans) !important;
+}
+body {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Opt-in helper for the condensed cut (e.g. dense tables, tags, stat labels). */
+/* Legacy helper — now the same single family. */
 .font-condensed {
   font-family: var(--font-condensed);
 }
