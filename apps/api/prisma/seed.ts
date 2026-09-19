@@ -24,19 +24,24 @@ async function main() {
 
   // ─── Users (map to real M365 accounts later via entraObjectId) ───
   const users = [
+    { name: 'Anupam Kumar', email: 'anupam.kumar@ddecor.com', role: UserRole.ADMIN },
+    { name: 'Rekha', email: 'rekha@ddecor.com', role: UserRole.MANAGEMENT },
     { name: 'Logistics User', email: 'logistics@ddecor.com', role: UserRole.LOGISTICS },
     { name: 'Documentation User', email: 'docs@ddecor.com', role: UserRole.DOCUMENTATION },
-    { name: 'Management User', email: 'management@ddecor.com', role: UserRole.MANAGEMENT },
-    { name: 'Admin User', email: 'admin@ddecor.com', role: UserRole.ADMIN },
   ];
   const passwordHash = bcrypt.hashSync(DEV_PASSWORD, 10);
   for (const u of users) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role, passwordHash },
+      update: { name: u.name, role: u.role, passwordHash, isActive: true },
       create: { ...u, passwordHash },
     });
   }
+  // Retire the old placeholder accounts.
+  await prisma.user.updateMany({
+    where: { email: { in: ['admin@ddecor.com', 'management@ddecor.com'] } },
+    data: { isActive: false },
+  });
 
   // ─── Locations (sample; replace with the real master list) ───
   const locations = [
