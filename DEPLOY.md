@@ -32,7 +32,7 @@ cp .env.production.example .env.production
 nano .env.production
 ```
 Fill in: `SHARED_NETWORK`, `DATABASE_URL` (shared PG service name + the db/user above),
-`SESSION_SECRET` (`openssl rand -hex 32`), `COLORWAY_SMTP_PASS`. Leave
+`SESSION_SECRET` (`openssl rand -hex 32`), `SMTP_PASS`. Leave
 `CORS_ORIGIN`/`WEB_BASE_URL` = `https://dlogix.ddecor.com`.
 
 ## 3. Build & start (migrations run automatically)

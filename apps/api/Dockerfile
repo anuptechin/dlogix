@@ -34,7 +34,9 @@ COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/package.json ./apps/api/
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
-COPY --from=build /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
+# NOTE: the Prisma client is hoisted to the ROOT node_modules/.prisma in this
+# npm-workspaces monorepo, so it's already included by the `COPY /app/node_modules`
+# above — no separate apps/api/node_modules/.prisma copy (that path doesn't exist).
 WORKDIR /app/apps/api
 EXPOSE 3093
 # run pending migrations, then start
