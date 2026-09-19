@@ -49,8 +49,10 @@ The api container runs `prisma migrate deploy` on start, then boots.
 ## 4. Seed reference data + the first users (one time)
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api npx ts-node prisma/seed.ts
+docker compose -f docker-compose.prod.yml --env-file .env.production exec api node dist/prisma/seed.js
 ```
+(Run the **compiled** seed — `nest build` emits `dist/prisma/seed.js`; `ts-node`
+fails in the prod image with `Unknown file extension ".ts"`.)
 This creates masters (charge types, incoterms, lookups, courier rate cards are
 uploaded later in-app) and the starter accounts. **Change/rotate these after first login.**
 Seed logins (password fallback): `admin@ddecor.com`, `management@ddecor.com`,
