@@ -1,0 +1,100 @@
+/* Export Courier Calculator — compact two-column layout + result panel. */
+.calc {
+  max-width: 940px;
+}
+
+.calc__seg .ant-segmented-item-label {
+  padding: 6px 4px;
+}
+
+/* Result panel */
+.calc__result {
+  border: 1px solid #e3ecf7;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  height: 100%;
+}
+.calc__total {
+  background: var(--brand-gradient, linear-gradient(135deg, #46a8ff, #1e7fe6, #0d3f7a));
+  color: #fff;
+  padding: 20px 22px 18px;
+}
+.calc__total-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.calc__total-value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.05;
+  margin-top: 4px;
+}
+.calc__pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.calc__pill {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 13px;
+}
+
+.calc__meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  border-bottom: 1px solid #eef3f9;
+}
+.calc__chip {
+  background: #eef5fd;
+  color: #0a2a4e;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 12.5px;
+}
+.calc__chip b {
+  color: #1e7fe6;
+}
+
+.calc__rows {
+  padding: 6px 22px 16px;
+}
+.calc__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px dashed #eef3f9;
+  font-size: 14px;
+}
+.calc__row:last-child {
+  border-bottom: none;
+}
+.calc__row-label {
+  color: #5b6b7c;
+}
+.calc__row-value {
+  font-weight: 600;
+  color: #0a2a4e;
+}
+
+.calc__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 260px;
+  border: 1px dashed #d6e3f2;
+  border-radius: 16px;
+  background: #f7fafe;
+  padding: 24px;
+  text-align: center;
+}
