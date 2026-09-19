@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import './LandingPage.css';
 
 import logo from '../../assets/dlogix/dlogix-logo.png';
-import heroShip from '../../assets/dlogix/hero-ship.jpg';
+import heroShip from '../../assets/dlogix/hero-banner.png';
 import ctaHarbour from '../../assets/dlogix/cta-harbour.jpg';
 import cardOcean from '../../assets/dlogix/card-ocean.jpg';
 import cardAir from '../../assets/dlogix/card-air.jpg';
