@@ -35,7 +35,8 @@ export class EmailService {
       this.smtp = nodemailer.createTransport({
         host: SMTP_HOST,
         port: SMTP_PORT,
-        secure: SMTP_PORT === 465, // 587 → STARTTLS
+        secure: SMTP_PORT === 465, // 465 = implicit TLS
+        requireTLS: SMTP_PORT !== 465, // 587 → force STARTTLS (Office365)
         auth: { user: SMTP_USER, pass: SMTP_PASS },
       });
     }
