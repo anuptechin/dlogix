@@ -83,6 +83,7 @@ export default function VendorsPage() {
       name: vendor.name,
       contactPerson: vendor.contactPerson ?? undefined,
       email: vendor.email,
+      ccEmails: vendor.ccEmails ?? [],
       phone: vendor.phone ?? undefined,
       address: vendor.address ?? undefined,
       modeCapabilities: vendor.modeCapabilities,
@@ -187,7 +188,7 @@ export default function VendorsPage() {
             <Input placeholder="e.g. ABC Freight Forwarders" />
           </Form.Item>
           <Form.Item
-            label="Email"
+            label="Primary email (To)"
             name="email"
             rules={[
               { required: true, message: 'Email is required' },
@@ -195,6 +196,26 @@ export default function VendorsPage() {
             ]}
           >
             <Input placeholder="quotes@vendor.com" />
+          </Form.Item>
+          <Form.Item
+            label="Secondary emails (Cc)"
+            name="ccEmails"
+            tooltip="Added as Cc on every mail to this vendor. Type an address and press Enter."
+            rules={[
+              {
+                validator: (_, v?: string[]) =>
+                  !v || v.every((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('One or more Cc addresses are invalid')),
+              },
+            ]}
+          >
+            <Select
+              mode="tags"
+              tokenSeparators={[',', ' ', ';']}
+              open={false}
+              placeholder="cc1@vendor.com, cc2@vendor.com"
+            />
           </Form.Item>
           <Form.Item label="Contact person" name="contactPerson">
             <Input placeholder="Full name" />

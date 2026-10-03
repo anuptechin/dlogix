@@ -3,6 +3,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 
 export interface EmailMessage {
   to: string;
+  cc?: string[];
   subject: string;
   text: string;
   html?: string;
@@ -57,6 +58,7 @@ export class EmailService {
           await t.sendMail({
             from,
             to: msg.to,
+            cc: msg.cc?.length ? msg.cc : undefined,
             subject: msg.subject,
             text: msg.text,
             html: msg.html,
@@ -76,6 +78,7 @@ export class EmailService {
         '──────────── EMAIL ────────────',
         `From:    ${from}`,
         `To:      ${msg.to}`,
+        ...(msg.cc?.length ? [`Cc:      ${msg.cc.join(', ')}`] : []),
         `Subject: ${msg.subject}`,
         '',
         msg.text,

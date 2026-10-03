@@ -214,6 +214,7 @@ export class EnquiriesService {
         : 'at the earliest';
       await this.email.send({
         to: ev.vendor.email,
+        cc: ev.vendor.ccEmails,
         subject: `Request for Quotation — ${enquiry.enquiryNo}`,
         text: [
           `Dear ${ev.vendor.contactPerson ?? ev.vendor.name},`,
@@ -345,6 +346,7 @@ export class EnquiriesService {
       if (ev.id === winner.id) {
         await this.email.send({
           to: ev.vendor.email,
+          cc: ev.vendor.ccEmails,
           subject: `Your quotation was accepted — ${enquiry.enquiryNo}`,
           text: [
             `Dear ${ev.vendor.contactPerson ?? ev.vendor.name},`,
@@ -362,6 +364,7 @@ export class EnquiriesService {
         // Blind feedback — no winning rate, no winning vendor.
         await this.email.send({
           to: ev.vendor.email,
+          cc: ev.vendor.ccEmails,
           subject: `Outcome of your quotation — ${enquiry.enquiryNo}`,
           text: [
             `Dear ${ev.vendor.contactPerson ?? ev.vendor.name},`,

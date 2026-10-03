@@ -85,6 +85,7 @@ export interface Vendor {
   name: string;
   contactPerson?: string | null;
   email: string;
+  ccEmails: string[];
   phone?: string | null;
   address?: string | null;
   modeCapabilities: ShipmentMode[];
@@ -96,6 +97,7 @@ export interface VendorInput {
   name: string;
   contactPerson?: string;
   email: string;
+  ccEmails?: string[];
   phone?: string;
   address?: string;
   modeCapabilities?: ShipmentMode[];

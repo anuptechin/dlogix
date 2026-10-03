@@ -225,11 +225,6 @@ export default function CalculatorPage() {
                     </div>
                   </div>
                 </div>
-                <div className="calc__gstline">
-                  GST ({Math.round(result.breakdown.gstPct * 100)}%){' '}
-                  <b>{money(result.breakdown.gstAmount)}</b> — excluded from the quoted rate. With
-                  GST: <b>{money(result.grandTotal.inr)}</b>
-                </div>
 
                 <div className="calc__meta">
                   <span className="calc__chip">

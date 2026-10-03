@@ -78,6 +78,7 @@ model Vendor {
   name             String
   contactPerson    String?        @map("contact_person")
   email            String
+  ccEmails         String[]       @default([]) @map("cc_emails") // secondary addresses, Cc'd on invites
   phone            String?
   address          String?
   modeCapabilities ShipmentMode[] @map("mode_capabilities")
