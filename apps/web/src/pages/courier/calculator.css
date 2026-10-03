@@ -18,13 +18,32 @@
 .calc__total {
   background: var(--brand-gradient, linear-gradient(135deg, #46a8ff, #1e7fe6, #0d3f7a));
   color: #fff;
-  padding: 20px 22px 18px;
+}
+/* Two columns: our cost (left, muted) vs customer quote (right, primary). */
+.calc__cols {
+  display: flex;
+  flex-wrap: wrap;
+}
+.calc__col {
+  padding: 18px 22px;
+  flex: 1 1 180px;
+}
+.calc__col--cost {
+  background: rgba(3, 16, 34, 0.22);
+  flex: 0 1 auto;
+  min-width: 170px;
 }
 .calc__total-label {
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.9;
+}
+.calc__cost-value {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.05;
+  margin-top: 4px;
 }
 .calc__total-value {
   font-size: 34px;
@@ -37,6 +56,17 @@
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 14px;
+}
+/* GST shown separately — excluded from the quoted rate. */
+.calc__gstline {
+  padding: 10px 22px;
+  background: #f3f8fe;
+  color: #5b6b7c;
+  font-size: 12.5px;
+  border-bottom: 1px solid #eef3f9;
+}
+.calc__gstline b {
+  color: #0a2a4e;
 }
 .calc__pill {
   background: rgba(255, 255, 255, 0.18);

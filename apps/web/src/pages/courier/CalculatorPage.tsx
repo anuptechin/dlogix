@@ -209,15 +209,26 @@ export default function CalculatorPage() {
             {result ? (
               <div className="calc__result">
                 <div className="calc__total">
-                  <div className="calc__total-label">
-                    Grand total · incl {Math.round(result.breakdown.gstPct * 100)}% GST
+                  <div className="calc__cols">
+                    <div className="calc__col calc__col--cost">
+                      <div className="calc__total-label">Our cost (all-in)</div>
+                      <div className="calc__cost-value">{money(result.breakdown.costToUs)}</div>
+                    </div>
+                    <div className="calc__col">
+                      <div className="calc__total-label">Quote to customer · ex-GST</div>
+                      <div className="calc__total-value">{money(result.selling.inr)}</div>
+                      <div className="calc__pills">
+                        <span className="calc__pill">{money(result.selling.usd, 'usd')}</span>
+                        <span className="calc__pill">{money(result.selling.gbp, 'gbp')}</span>
+                        <span className="calc__pill">{money(result.selling.eur, 'eur')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="calc__total-value">{money(result.grandTotal.inr)}</div>
-                  <div className="calc__pills">
-                    <span className="calc__pill">{money(result.grandTotal.usd, 'usd')}</span>
-                    <span className="calc__pill">{money(result.grandTotal.gbp, 'gbp')}</span>
-                    <span className="calc__pill">{money(result.grandTotal.eur, 'eur')}</span>
-                  </div>
+                </div>
+                <div className="calc__gstline">
+                  GST ({Math.round(result.breakdown.gstPct * 100)}%){' '}
+                  <b>{money(result.breakdown.gstAmount)}</b> — excluded from the quoted rate. With
+                  GST: <b>{money(result.grandTotal.inr)}</b>
                 </div>
 
                 <div className="calc__meta">
@@ -267,14 +278,12 @@ export default function CalculatorPage() {
                         <span className="calc__row-value">{money(result.breakdown.fuelPerKg)} /kg</span>
                       </div>
                       <div className="calc__row">
-                        <span className="calc__row-label">Cost to us</span>
-                        <span className="calc__row-value">{money(result.breakdown.costToUs)}</span>
+                        <span className="calc__row-label">Subtotal / kg</span>
+                        <span className="calc__row-value">{money(result.breakdown.subtotalPerKg)}</span>
                       </div>
                       <div className="calc__row">
-                        <span className="calc__row-label">
-                          Selling (×{result.breakdown.marginX})
-                        </span>
-                        <span className="calc__row-value">{money(result.breakdown.sellingInr)}</span>
+                        <span className="calc__row-label">Margin</span>
+                        <span className="calc__row-value">×{result.breakdown.marginX}</span>
                       </div>
                     </Col>
                   </Row>
