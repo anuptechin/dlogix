@@ -28,13 +28,6 @@ SET row_security = off;
 -- Data for Name: lookup_options; Type: TABLE DATA; Schema: public; Owner: lprms
 --
 
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('d4c6642e-ab26-4145-9978-c3f210e189e1', 'CONTAINER_TYPE', NULL, '20GP', NULL, 0, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('13d9a588-8262-444c-a5e5-6ddfb9e47e4f', 'CONTAINER_TYPE', NULL, '40GP', NULL, 1, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('f26906d6-cd42-458e-ac71-0827c76ea3ca', 'CONTAINER_TYPE', NULL, '40HC', NULL, 2, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('b3c2a991-7480-4a10-ac64-d8b2525cc164', 'CONTAINER_TYPE', NULL, '45HC', NULL, 3, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('1284edbb-5ad3-415e-9c0c-4584e3b05024', 'CONTAINER_TYPE', NULL, 'Reefer', NULL, 4, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('7ef52217-726d-4203-8ab2-9bf1d43f93d7', 'CONTAINER_TYPE', NULL, 'Open Top', NULL, 5, true);
-INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('a99aef1d-600f-4e18-91e6-c20df53421f7', 'CONTAINER_TYPE', NULL, 'Flat Rack', NULL, 6, true);
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('afae51b1-d361-489d-98f5-6e70d755c78d', 'PACKAGE_TYPE', NULL, 'Cartons', NULL, 0, true);
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('5d42e8a6-a3ae-4c0e-8621-fa0caadfb411', 'PACKAGE_TYPE', NULL, 'Rolls', NULL, 1, true);
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('7b59a0dc-564f-4af7-afc0-f567389277d8', 'PACKAGE_TYPE', NULL, 'Pallets', NULL, 2, true);
@@ -66,6 +59,13 @@ INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, 
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('95578cc0-300f-4554-b88e-6a17fe936df6', 'BUSINESS_UNIT', NULL, 'Exports', NULL, 1, true);
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('76460786-2dd5-427b-af13-174640f587ab', 'BUSINESS_UNIT', NULL, 'Imports', NULL, 2, true);
 INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('56de0e57-3f81-47a3-ab00-1862c4f059d5', 'BUSINESS_UNIT', NULL, 'Retail', NULL, 3, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('4ecec776-d557-4d33-8ecc-86a43bcc51dd', 'CONTAINER_TYPE', NULL, '20′ GP', NULL, 0, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('b0b08df2-da5c-464c-8015-c274dc72fcd7', 'CONTAINER_TYPE', NULL, '40′ GP', NULL, 1, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('1ea61f52-bb50-4e97-ba78-f2748e17cf3b', 'CONTAINER_TYPE', NULL, '40′ HC', NULL, 2, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('54e03902-598f-4fea-b05c-5cb3e4e5374b', 'CONTAINER_TYPE', NULL, '20′ Reefer', NULL, 3, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('329017ed-2603-47da-b6db-4c6e28cd87e7', 'CONTAINER_TYPE', NULL, '40′ Reefer', NULL, 4, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('88830ff4-6d61-461a-b79b-b48f9db47a60', 'CONTAINER_TYPE', NULL, 'Open Top', NULL, 5, true);
+INSERT INTO public.lookup_options (id, category, code, label, meta, sort_order, is_active) VALUES ('1ab8d764-7fbb-4f24-a66b-ebc10bcdb726', 'CONTAINER_TYPE', NULL, 'Flat Rack', NULL, 6, true);
 
 
 --

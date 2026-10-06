@@ -166,7 +166,7 @@ async function main() {
 
   // ─── Generic dropdown masters ───
   const lookups: { category: string; label: string; sortOrder?: number }[] = [
-    ...['20GP', '40GP', '40HC', '45HC', 'Reefer', 'Open Top', 'Flat Rack'].map(
+    ...['20′ GP', '40′ GP', '40′ HC', '20′ Reefer', '40′ Reefer', 'Open Top', 'Flat Rack'].map(
       (label, i) => ({ category: 'CONTAINER_TYPE', label, sortOrder: i }),
     ),
     ...['Cartons', 'Rolls', 'Pallets', 'Crates', 'Bundles', 'Bales', 'Drums'].map(
