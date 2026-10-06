@@ -41,6 +41,11 @@ export class AuthService {
 
     await this.email.send({
       to: user.email,
+      // OTP goes from the authenticated SMTP mailbox (tuesday@); other comms use EMAIL_FROM.
+      from:
+        process.env.OTP_EMAIL_FROM ??
+        process.env.SMTP_USER ??
+        process.env.COLORWAY_SMTP_USER,
       subject: `Your Dlogix sign-in code: ${code}`,
       text: [
         `Hello ${user.name},`,

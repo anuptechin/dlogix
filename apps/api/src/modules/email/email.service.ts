@@ -4,6 +4,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 export interface EmailMessage {
   to: string;
   cc?: string[];
+  from?: string; // per-message sender; defaults to EMAIL_FROM / SMTP user
   subject: string;
   text: string;
   html?: string;
@@ -49,7 +50,7 @@ export class EmailService {
   async send(msg: EmailMessage): Promise<{ transport: string }> {
     const transport = process.env.EMAIL_TRANSPORT ?? 'console';
     const from =
-      process.env.EMAIL_FROM ?? smtpConfig().user ?? 'logistics-portal@ddecor.com';
+      msg.from ?? process.env.EMAIL_FROM ?? smtpConfig().user ?? 'logistics-portal@ddecor.com';
 
     if (transport === 'smtp') {
       const t = this.smtpTransport();
