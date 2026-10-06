@@ -290,8 +290,12 @@ export default function EnquiryFormPage() {
     },
   });
 
-  const locationOptions = (locations ?? []).map((l) => ({
-    label: `${l.code ? l.code + ' — ' : ''}${l.name}`,
+  // Show locations relevant to the chosen mode (airports for Air, seaports for
+  // Sea, courier points for Courier). Falls back to all if none match that kind.
+  const relevantKinds = isAir ? ['AIRPORT'] : isCourier ? ['COURIER', 'AIRPORT', 'ROAD'] : ['PORT'];
+  const forMode = (locations ?? []).filter((l) => relevantKinds.includes(l.kind));
+  const locationOptions = (forMode.length ? forMode : (locations ?? [])).map((l) => ({
+    label: `${l.code ? l.code + ' — ' : ''}${l.name}${l.country ? ' · ' + l.country : ''}`,
     value: l.id,
   }));
   const partyOpts = (role: string) =>
