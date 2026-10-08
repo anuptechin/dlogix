@@ -146,8 +146,13 @@ export class ExportCourierService {
     // Number of identical boxes — dims and actual weight are PER BOX; totals scale by this.
     const boxes = dto.boxes && dto.boxes > 0 ? Math.floor(dto.boxes) : 1;
 
+    // Dimensions are mandatory — L, W and H must all be provided.
+    if (!(dto.lengthCm && dto.widthCm && dto.heightCm)) {
+      throw new BadRequestException('Length, width and height are all required.');
+    }
+
     // Volumetric weight (kg) per box. cm ÷ divisorCm; inch ÷ divisorIn → lb → kg.
-    const dims = (dto.lengthCm ?? 0) * (dto.widthCm ?? 0) * (dto.heightCm ?? 0);
+    const dims = dto.lengthCm * dto.widthCm * dto.heightCm;
     const hasDims = dims > 0;
     const volumetricPerBox =
       !hasDims

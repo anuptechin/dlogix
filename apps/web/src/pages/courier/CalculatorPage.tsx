@@ -168,18 +168,30 @@ export default function CalculatorPage() {
 
                 <Row gutter={8}>
                   <Col span={8}>
-                    <Form.Item label="L" name="lengthCm" style={{ marginBottom: 12 }}>
-                      <InputNumber min={0} style={{ width: '100%' }} placeholder="L" />
+                    <Form.Item
+                      label="L"
+                      name="lengthCm"
+                      rules={[{ required: true, message: 'Required' }]}
+                    >
+                      <InputNumber min={0.1} style={{ width: '100%' }} placeholder="L" />
                     </Form.Item>
                   </Col>
                   <Col span={8}>
-                    <Form.Item label="W" name="widthCm" style={{ marginBottom: 12 }}>
-                      <InputNumber min={0} style={{ width: '100%' }} placeholder="W" />
+                    <Form.Item
+                      label="W"
+                      name="widthCm"
+                      rules={[{ required: true, message: 'Required' }]}
+                    >
+                      <InputNumber min={0.1} style={{ width: '100%' }} placeholder="W" />
                     </Form.Item>
                   </Col>
                   <Col span={8}>
-                    <Form.Item label="H" name="heightCm" style={{ marginBottom: 12 }}>
-                      <InputNumber min={0} style={{ width: '100%' }} placeholder="H" />
+                    <Form.Item
+                      label="H"
+                      name="heightCm"
+                      rules={[{ required: true, message: 'Required' }]}
+                    >
+                      <InputNumber min={0.1} style={{ width: '100%' }} placeholder="H" />
                     </Form.Item>
                   </Col>
                 </Row>
