@@ -6,6 +6,13 @@ import { UpdateRateCardDto } from './dto/rate-card.dto';
 import { ExportCalcDto } from './dto/export-calc.dto';
 import { EmailQuoteDto } from './dto/email-quote.dto';
 import { EmailService } from '../email/email.service';
+import ExcelJS from 'exceljs';
+import {
+  parseFedexReport,
+  type CheckStatus,
+  type FedexCheckResult,
+  type FedexCheckRow,
+} from './fedex-check';
 
 const LB_TO_KG = 0.45359237;
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -204,6 +211,110 @@ export class ExportCourierService {
       orderBy: { country: 'asc' },
     });
     return rows;
+  }
+
+  /** Validate a FedEx report workbook against our FedEx rate card (base rate). */
+  async fedexCheck(buffer: Buffer): Promise<FedexCheckResult> {
+    const card = await this.prisma.courierRateCard.findUnique({
+      where: { carrier: CourierCarrier.FEDEX },
+    });
+    if (!card) throw new NotFoundException('No FedEx rate card. Import the workbook first.');
+    const flatMax = num(card.flatMaxWeightKg);
+
+    const [zones, rateRows] = await Promise.all([
+      this.prisma.courierZone.findMany({ where: { rateCardId: card.id } }),
+      this.prisma.courierRateRow.findMany({ where: { rateCardId: card.id } }),
+    ]);
+    // Normalise country names (the report has trailing commas / variant spellings).
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[.,;:]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const ALIAS: Record<string, string> = {
+      'korea, south': 'south korea',
+      'slovak republic': 'slovakia republic',
+      'south african republic': 'south africa',
+    };
+    const zoneByCountry = new Map<string, string>();
+    for (const z of zones) zoneByCountry.set(norm(z.country), z.zone);
+
+    const flatByZone = new Map<string, { w: number; p: number }[]>();
+    const perKgByZone = new Map<string, { w: number; p: number }[]>();
+    for (const rr of rateRows) {
+      const bucket = rr.perKg ? perKgByZone : flatByZone;
+      const arr = bucket.get(rr.zone) ?? [];
+      arr.push({ w: num(rr.weightKg), p: num(rr.price) });
+      bucket.set(rr.zone, arr);
+    }
+    for (const map of [flatByZone, perKgByZone])
+      for (const arr of map.values()) arr.sort((a, b) => a.w - b.w);
+
+    // Same regime as calculate(): flat slab up to flatMax, else per-kg breakpoint.
+    const baseFor = (zone: string, weight: number): number | null => {
+      const billed = Math.ceil(weight / 0.5) * 0.5;
+      if (billed <= flatMax) {
+        const list = flatByZone.get(zone) ?? [];
+        const row = list.find((x) => x.w === billed) ?? list.find((x) => x.w >= billed);
+        return row ? row.p : null;
+      }
+      const list = perKgByZone.get(zone) ?? [];
+      let brk: { w: number; p: number } | null = null;
+      for (const x of list) if (x.w <= weight) brk = x;
+      if (!brk) brk = list[0] ?? null;
+      return brk ? brk.p * weight : null;
+    };
+
+    const parsed = await parseFedexReport(buffer);
+    const rows: FedexCheckRow[] = parsed.map((p) => {
+      const key = norm(p.destCountry);
+      const zone = zoneByCountry.get(ALIAS[key] ?? key) ?? null;
+      if (!zone) return { ...p, zone: null, expectedBase: null, diff: null, status: 'NO_ZONE' };
+      const expected = baseFor(zone, p.finalWt);
+      if (expected == null) return { ...p, zone, expectedBase: null, diff: null, status: 'NO_RATE' };
+      const exp = r2(expected);
+      const diff = r2(p.reportedBase - exp);
+      const tol = Math.max(5, exp * 0.005); // ₹5 or 0.5% for rounding
+      const status: CheckStatus = Math.abs(diff) <= tol ? 'CORRECT' : 'INCORRECT';
+      return { ...p, zone, expectedBase: exp, diff, status };
+    });
+
+    const summary = {
+      total: rows.length,
+      correct: rows.filter((r) => r.status === 'CORRECT').length,
+      incorrect: rows.filter((r) => r.status === 'INCORRECT').length,
+      noZone: rows.filter((r) => r.status === 'NO_ZONE').length,
+      noRate: rows.filter((r) => r.status === 'NO_RATE').length,
+    };
+    return { rows, summary };
+  }
+
+  /** The FedEx check as a downloadable .xlsx. */
+  async fedexCheckExcel(buffer: Buffer): Promise<Buffer> {
+    const { rows, summary } = await this.fedexCheck(buffer);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('FedEx Check');
+    ws.columns = [
+      { header: 'Sheet', key: 'sheet', width: 10 },
+      { header: 'Destination', key: 'destCountry', width: 24 },
+      { header: 'Final Wt (kg)', key: 'finalWt', width: 14 },
+      { header: 'Zone', key: 'zone', width: 8 },
+      { header: 'Reported Base', key: 'reportedBase', width: 16 },
+      { header: 'Expected Base', key: 'expectedBase', width: 16 },
+      { header: 'Difference', key: 'diff', width: 14 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    rows.forEach((r) => ws.addRow(r));
+    ws.addRow({});
+    ws.addRow({ destCountry: 'TOTAL', finalWt: summary.total });
+    ws.addRow({ destCountry: 'CORRECT', finalWt: summary.correct });
+    ws.addRow({ destCountry: 'INCORRECT', finalWt: summary.incorrect });
+    ws.addRow({ destCountry: 'NO ZONE', finalWt: summary.noZone });
+    ws.addRow({ destCountry: 'NO RATE', finalWt: summary.noRate });
+    const buf = await wb.xlsx.writeBuffer();
+    return Buffer.from(buf);
   }
 
   async calculate(dto: ExportCalcDto) {

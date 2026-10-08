@@ -14,6 +14,7 @@ import EnquiryDetailPage from './pages/enquiries/EnquiryDetailPage';
 import ComparisonPage from './pages/enquiries/ComparisonPage';
 import CalculatorPage from './pages/courier/CalculatorPage';
 import RateCardsPage from './pages/courier/RateCardsPage';
+import FedexCheckPage from './pages/courier/FedexCheckPage';
 import QuotePage from './quote/QuotePage';
 import { RequireAuth, RequireRole, StaffOnly } from './auth/guards';
 import { useSession } from './auth/useSession';
@@ -58,6 +59,14 @@ export default function App() {
           element={<RequireRole roles={[...MANAGE]}><RateCardsPage /></RequireRole>}
         />
         <Route path="courier/calculator" element={<CalculatorPage />} />
+        <Route
+          path="courier/fedex-check"
+          element={
+            <RequireRole roles={['ADMIN', 'MANAGEMENT', 'LOGISTICS']}>
+              <FedexCheckPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="reports"
           element={<RequireRole roles={[...MANAGE]}><ReportsPage /></RequireRole>}

@@ -15,3 +15,6 @@ export const canManage = (role?: Role) => role === 'ADMIN' || role === 'MANAGEME
 export const isAdmin = (role?: Role) => role === 'ADMIN';
 /** End-users only get the calculator (quote-only output). */
 export const isEndUser = (role?: Role) => role === 'END_USER';
+/** Operational staff (Admin / Manager / Logistics) — e.g. FedEx data check. */
+export const canOps = (role?: Role) =>
+  role === 'ADMIN' || role === 'MANAGEMENT' || role === 'LOGISTICS';

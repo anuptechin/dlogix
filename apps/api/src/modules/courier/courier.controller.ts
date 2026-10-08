@@ -7,11 +7,13 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { CourierCarrier, UserRole } from '@prisma/client';
 import { Roles, RolesGuard } from '../../common/roles.guard';
 import { getReqCtx } from '../../common/request-context';
@@ -98,6 +100,29 @@ export class CourierController {
   @Post('email-quote')
   emailQuote(@Body() dto: EmailQuoteDto) {
     return this.exportCourier.emailQuote(dto);
+  }
+
+  // ─── FedEx Data Check — Admin / Manager / Logistics ──
+  @Post('fedex-check')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.LOGISTICS)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  fedexCheck(@UploadedFile() file: { buffer: Buffer }) {
+    return this.exportCourier.fedexCheck(file.buffer);
+  }
+
+  @Post('fedex-check/export')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGEMENT, UserRole.LOGISTICS)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 15 * 1024 * 1024 } }))
+  async fedexCheckExport(@UploadedFile() file: { buffer: Buffer }, @Res() res: Response) {
+    const buf = await this.exportCourier.fedexCheckExcel(file.buffer);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="fedex-data-check.xlsx"',
+      'Content-Length': String(buf.length),
+    });
+    res.end(buf);
   }
 
   @Get('contracts')

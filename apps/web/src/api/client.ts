@@ -941,6 +941,37 @@ export async function updateRateCard(
   return data;
 }
 
+// ─── FedEx Data Check ───────────────────────────────────────
+export type FedexCheckStatus = 'CORRECT' | 'INCORRECT' | 'NO_ZONE' | 'NO_RATE';
+export interface FedexCheckRow {
+  sheet: string;
+  destCountry: string;
+  finalWt: number;
+  reportedBase: number;
+  zone: string | null;
+  expectedBase: number | null;
+  diff: number | null;
+  status: FedexCheckStatus;
+}
+export interface FedexCheckResult {
+  rows: FedexCheckRow[];
+  summary: { total: number; correct: number; incorrect: number; noZone: number; noRate: number };
+}
+
+export async function fedexCheck(file: File): Promise<FedexCheckResult> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const { data } = await api.post<FedexCheckResult>('/courier/fedex-check', fd);
+  return data;
+}
+
+export async function fedexCheckExport(file: File): Promise<Blob> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const { data } = await api.post('/courier/fedex-check/export', fd, { responseType: 'blob' });
+  return data as Blob;
+}
+
 export async function listRateCardCountries(
   carrier: CourierCarrier,
 ): Promise<RateCardCountry[]> {
