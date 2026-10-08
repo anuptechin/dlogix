@@ -14,5 +14,6 @@ export class ExportCalcDto {
   @IsOptional() @IsNumber() @Min(0) lengthCm?: number;
   @IsOptional() @IsNumber() @Min(0) widthCm?: number;
   @IsOptional() @IsNumber() @Min(0) heightCm?: number;
-  @IsOptional() @IsNumber() @Min(0) actualWeightKg?: number;
+  @IsOptional() @IsNumber() @Min(0) actualWeightKg?: number; // per box
+  @IsOptional() @IsNumber() @Min(1) boxes?: number; // number of identical boxes
 }

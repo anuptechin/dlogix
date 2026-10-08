@@ -143,17 +143,22 @@ export class ExportCourierService {
     }
     const zone = zoneRow.zone;
 
-    // Volumetric weight (kg). cm ÷ divisorCm; inch ÷ divisorIn → lb → kg.
+    // Number of identical boxes — dims and actual weight are PER BOX; totals scale by this.
+    const boxes = dto.boxes && dto.boxes > 0 ? Math.floor(dto.boxes) : 1;
+
+    // Volumetric weight (kg) per box. cm ÷ divisorCm; inch ÷ divisorIn → lb → kg.
     const dims = (dto.lengthCm ?? 0) * (dto.widthCm ?? 0) * (dto.heightCm ?? 0);
     const hasDims = dims > 0;
-    const volumetricKg =
+    const volumetricPerBox =
       !hasDims
         ? 0
         : dto.unit === 'in'
           ? (dims / card.volumetricDivisorIn) * LB_TO_KG
           : dims / card.volumetricDivisorCm;
 
-    const actual = dto.actualWeightKg ?? 0;
+    // Totals across all boxes.
+    const volumetricKg = volumetricPerBox * boxes;
+    const actual = (dto.actualWeightKg ?? 0) * boxes;
     const chargeable = Math.max(actual, volumetricKg);
     if (chargeable <= 0) {
       throw new BadRequestException('Enter an actual weight or dimensions.');
@@ -207,6 +212,7 @@ export class ExportCourierService {
       country: zoneRow.country,
       zone,
       unit: dto.unit,
+      boxes,
       dims: { length: dto.lengthCm ?? null, width: dto.widthCm ?? null, height: dto.heightCm ?? null },
       actualWeightKg: r2(actual),
       volumetricWeightKg: r2(volumetricKg),

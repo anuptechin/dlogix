@@ -60,6 +60,7 @@ export default function CalculatorPage() {
         widthCm: v.widthCm as number | undefined,
         heightCm: v.heightCm as number | undefined,
         actualWeightKg: v.actualWeightKg as number | undefined,
+        boxes: v.boxes as number | undefined,
       }),
     onSuccess: (res) => setResults((prev) => ({ ...prev, [carrier]: res })),
     onError: (err: unknown) => {
@@ -139,7 +140,7 @@ export default function CalculatorPage() {
               <Form
                 form={form}
                 layout="vertical"
-                initialValues={{ unit: 'cm' }}
+                initialValues={{ unit: 'cm', boxes: 1 }}
                 onFinish={(v) => calcMut.mutate(v)}
               >
                 <Form.Item
@@ -183,9 +184,18 @@ export default function CalculatorPage() {
                   </Col>
                 </Row>
 
-                <Form.Item label="Actual weight (kg)" name="actualWeightKg" style={{ marginBottom: 16 }}>
-                  <InputNumber min={0} style={{ width: '100%' }} placeholder="kg" />
-                </Form.Item>
+                <Row gutter={8}>
+                  <Col span={12}>
+                    <Form.Item label="Actual wt / box (kg)" name="actualWeightKg" style={{ marginBottom: 16 }}>
+                      <InputNumber min={0} style={{ width: '100%' }} placeholder="kg" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="No. of boxes" name="boxes" style={{ marginBottom: 16 }}>
+                      <InputNumber min={1} precision={0} style={{ width: '100%' }} placeholder="1" />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
                 <Space>
                   <Button
@@ -227,6 +237,9 @@ export default function CalculatorPage() {
                 </div>
 
                 <div className="calc__meta">
+                  <span className="calc__chip">
+                    Boxes <b>{result.boxes}</b>
+                  </span>
                   <span className="calc__chip">
                     Zone <b>{result.zone}</b>
                   </span>

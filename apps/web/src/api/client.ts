@@ -897,6 +897,7 @@ export interface ExportCalcResult {
   billedWeightKg: number;
   regime: 'FLAT' | 'PERKG';
   matchedWeightKg: number;
+  boxes: number;
   currency: string;
   breakdown: {
     base: number;
@@ -956,6 +957,7 @@ export async function exportCalculate(input: {
   widthCm?: number;
   heightCm?: number;
   actualWeightKg?: number;
+  boxes?: number;
 }): Promise<ExportCalcResult> {
   const { data } = await api.post<ExportCalcResult>('/courier/export-calculate', input);
   return data;
