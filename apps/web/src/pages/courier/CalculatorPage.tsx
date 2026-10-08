@@ -255,9 +255,21 @@ const ROWS: Row[] = [
   { label: 'EUR', val: (r) => money(r.selling.eur, 'eur') },
   { section: 'Shipment' },
   { label: 'Zone', val: (r) => r.zone },
+  { label: 'Actual weight', val: (r) => `${r.actualWeightKg} kg` },
+  { label: 'Volumetric', val: (r) => `${r.volumetricWeightKg} kg` },
   { label: 'Chargeable wt', val: (r) => `${r.chargeableWeightKg} kg` },
   { label: 'Billed wt', val: (r) => `${r.billedWeightKg} kg` },
   { label: 'Regime', val: (r) => (r.regime === 'PERKG' ? 'Per-kg (heavy)' : 'Flat slab') },
+  { section: 'Rate build-up' },
+  { label: 'Base rate', val: (r) => money(r.breakdown.base) },
+  { label: 'Rate / kg', val: (r) => money(r.breakdown.ratePerKg) },
+  { label: 'Surcharge / kg', val: (r) => money(r.breakdown.surchargePerKg) },
+  {
+    label: 'Fuel',
+    val: (r) => `${money(r.breakdown.fuelPerKg)} /kg · ${Math.round(r.breakdown.fuelPct * 100)}%`,
+  },
+  { label: 'Subtotal / kg', val: (r) => money(r.breakdown.subtotalPerKg) },
+  { label: 'Margin', val: (r) => `×${r.breakdown.marginX}` },
 ];
 
 function Comparison({
