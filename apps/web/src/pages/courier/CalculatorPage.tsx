@@ -5,24 +5,28 @@ import {
   Card,
   Col,
   Form,
+  Input,
   InputNumber,
+  Modal,
   Row,
   Segmented,
   Select,
   Space,
   Spin,
   Typography,
+  message,
 } from 'antd';
-import { CalculatorOutlined, ClearOutlined, SettingOutlined } from '@ant-design/icons';
+import { CalculatorOutlined, ClearOutlined, MailOutlined, SettingOutlined } from '@ant-design/icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
+  emailQuote,
   exportCalculate,
   listRateCardCountries,
   type CourierCarrier,
   type ExportCalcResult,
 } from '../../api/client';
-import { useSession, canManage } from '../../auth/useSession';
+import { useSession, canManage, isEndUser } from '../../auth/useSession';
 import './calculator.css';
 
 const { Title, Text } = Typography;
@@ -43,8 +47,43 @@ export default function CalculatorPage() {
   const [errors, setErrors] = useState<Partial<Record<CourierCarrier, string>>>({});
   const [calculated, setCalculated] = useState(false);
   const [form] = Form.useForm();
+  const [emailForm] = Form.useForm();
+  const [emailOpen, setEmailOpen] = useState(false);
   const { data: me } = useSession();
   const showSettings = canManage(me?.role);
+  const endUser = isEndUser(me?.role);
+
+  const emailMut = useMutation({
+    mutationFn: (vals: { to: string; cc?: string[] }) => {
+      const f = form.getFieldsValue();
+      return emailQuote({
+        to: vals.to,
+        cc: vals.cc,
+        country: f.country,
+        unit: (f.unit as 'cm' | 'in') ?? 'cm',
+        lengthCm: f.lengthCm,
+        widthCm: f.widthCm,
+        heightCm: f.heightCm,
+        actualWeightKg: f.actualWeightKg,
+        boxes: f.boxes,
+      });
+    },
+    onSuccess: (res) => {
+      message.success(`Quote for ${res.destination} emailed.`);
+      setEmailOpen(false);
+      emailForm.resetFields();
+    },
+    onError: (err) => message.error(errMsg(err)),
+  });
+
+  const openEmail = async () => {
+    try {
+      await form.validateFields();
+      setEmailOpen(true);
+    } catch {
+      /* form shows the validation errors */
+    }
+  };
 
   // Country lists for both carriers (Logistics can't read the rate cards themselves).
   const dhl = useQuery({ queryKey: ['rateCardCountries', 'DHL'], queryFn: () => listRateCardCountries('DHL') });
@@ -205,7 +244,7 @@ export default function CalculatorPage() {
                   </Col>
                 </Row>
 
-                <Space>
+                <Space wrap>
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -213,6 +252,9 @@ export default function CalculatorPage() {
                     loading={calcMut.isPending}
                   >
                     Calculate both
+                  </Button>
+                  <Button icon={<MailOutlined />} onClick={openEmail}>
+                    Email quote
                   </Button>
                   <Button icon={<ClearOutlined />} onClick={clearAll}>
                     Clear
@@ -231,11 +273,37 @@ export default function CalculatorPage() {
                 </Text>
               </div>
             ) : (
-              <Comparison results={results} errors={errors} />
+              <Comparison results={results} errors={errors} quoteOnly={endUser} />
             )}
           </Col>
         </Row>
       )}
+
+      <Modal
+        title="Email this quote"
+        open={emailOpen}
+        onOk={() => emailForm.validateFields().then((v) => emailMut.mutate(v))}
+        onCancel={() => setEmailOpen(false)}
+        confirmLoading={emailMut.isPending}
+        okText="Send"
+        destroyOnClose
+      >
+        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+          Sends the customer quote (ex-GST) for DHL &amp; FedEx to the recipient.
+        </Typography.Paragraph>
+        <Form form={emailForm} layout="vertical" requiredMark={false}>
+          <Form.Item
+            label="Recipient email"
+            name="to"
+            rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}
+          >
+            <Input placeholder="customer@example.com" />
+          </Form.Item>
+          <Form.Item label="Cc (optional)" name="cc">
+            <Select mode="tags" open={false} tokenSeparators={[',', ' ', ';']} placeholder="cc@example.com" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
@@ -275,11 +343,24 @@ const ROWS: Row[] = [
 function Comparison({
   results,
   errors,
+  quoteOnly = false,
 }: {
   results: Partial<Record<CourierCarrier, ExportCalcResult>>;
   errors: Partial<Record<CourierCarrier, string>>;
+  quoteOnly?: boolean;
 }) {
   const any = results.DHL ?? results.FEDEX;
+  // End-users see only the "Quote to customer" section.
+  const visibleRows = (() => {
+    if (!quoteOnly) return ROWS;
+    const out: Row[] = [];
+    let keep = false;
+    for (const row of ROWS) {
+      if ('section' in row) keep = row.section.startsWith('Quote to customer');
+      if (keep) out.push(row);
+    }
+    return out;
+  })();
   if (!any) {
     return (
       <Alert
@@ -318,7 +399,7 @@ function Comparison({
           </div>
         ))}
 
-        {ROWS.map((row, i) =>
+        {visibleRows.map((row, i) =>
           'section' in row ? (
             <div key={`s${i}`} className="cmp__cell cmp__section">
               {row.section}

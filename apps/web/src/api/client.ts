@@ -20,7 +20,7 @@ export async function getHealth(): Promise<HealthResponse> {
 }
 
 // ─── Auth ───────────────────────────────────────────────────
-export type Role = 'ADMIN' | 'MANAGEMENT' | 'LOGISTICS' | 'DOCUMENTATION';
+export type Role = 'ADMIN' | 'MANAGEMENT' | 'LOGISTICS' | 'DOCUMENTATION' | 'END_USER';
 export interface SessionUser {
   id: string;
   name: string;
@@ -961,6 +961,21 @@ export async function exportCalculate(input: {
   boxes?: number;
 }): Promise<ExportCalcResult> {
   const { data } = await api.post<ExportCalcResult>('/courier/export-calculate', input);
+  return data;
+}
+
+export async function emailQuote(input: {
+  to: string;
+  cc?: string[];
+  country: string;
+  unit: 'cm' | 'in';
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
+  actualWeightKg?: number;
+  boxes?: number;
+}): Promise<{ ok: boolean; destination: string }> {
+  const { data } = await api.post('/courier/email-quote', input);
   return data;
 }
 

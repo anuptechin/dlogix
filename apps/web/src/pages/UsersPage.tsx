@@ -30,18 +30,21 @@ const ROLE_OPTIONS = [
   { label: 'Manager', value: 'MANAGEMENT' },
   { label: 'Logistics User', value: 'LOGISTICS' },
   { label: 'Documentation', value: 'DOCUMENTATION' },
+  { label: 'End User', value: 'END_USER' },
 ];
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: 'Admin',
   MANAGEMENT: 'Manager',
   LOGISTICS: 'Logistics User',
   DOCUMENTATION: 'Documentation',
+  END_USER: 'End User',
 };
 const ROLE_COLOR: Record<string, string> = {
   ADMIN: 'red',
   MANAGEMENT: 'blue',
   LOGISTICS: 'green',
   DOCUMENTATION: 'default',
+  END_USER: 'gold',
 };
 
 export default function UsersPage() {

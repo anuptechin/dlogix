@@ -15,10 +15,18 @@ import ComparisonPage from './pages/enquiries/ComparisonPage';
 import CalculatorPage from './pages/courier/CalculatorPage';
 import RateCardsPage from './pages/courier/RateCardsPage';
 import QuotePage from './quote/QuotePage';
-import { RequireAuth, RequireRole } from './auth/guards';
+import { RequireAuth, RequireRole, StaffOnly } from './auth/guards';
+import { useSession } from './auth/useSession';
 
 // Roles allowed to manage rate cards / see reports / manage users.
 const MANAGE = ['ADMIN', 'MANAGEMENT'] as const;
+
+// End-users land on the calculator; everyone else on the dashboard.
+function AppHome() {
+  const { data } = useSession();
+  if (data?.role === 'END_USER') return <Navigate to="/app/courier/calculator" replace />;
+  return <DashboardPage />;
+}
 
 export default function App() {
   return (
@@ -37,13 +45,13 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="vendors" element={<VendorsPage />} />
-        <Route path="enquiries" element={<EnquiriesPage />} />
-        <Route path="enquiries/new" element={<EnquiryFormPage />} />
-        <Route path="enquiries/:id" element={<EnquiryDetailPage />} />
-        <Route path="enquiries/:id/edit" element={<EnquiryFormPage />} />
-        <Route path="enquiries/:id/compare" element={<ComparisonPage />} />
+        <Route index element={<AppHome />} />
+        <Route path="vendors" element={<StaffOnly><VendorsPage /></StaffOnly>} />
+        <Route path="enquiries" element={<StaffOnly><EnquiriesPage /></StaffOnly>} />
+        <Route path="enquiries/new" element={<StaffOnly><EnquiryFormPage /></StaffOnly>} />
+        <Route path="enquiries/:id" element={<StaffOnly><EnquiryDetailPage /></StaffOnly>} />
+        <Route path="enquiries/:id/edit" element={<StaffOnly><EnquiryFormPage /></StaffOnly>} />
+        <Route path="enquiries/:id/compare" element={<StaffOnly><ComparisonPage /></StaffOnly>} />
         <Route path="courier" element={<Navigate to="/app/courier/calculator" replace />} />
         <Route
           path="courier/rate-cards"

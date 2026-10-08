@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { parseRateCardWorkbook } from './rate-card-import';
 import { UpdateRateCardDto } from './dto/rate-card.dto';
 import { ExportCalcDto } from './dto/export-calc.dto';
+import { EmailQuoteDto } from './dto/email-quote.dto';
+import { EmailService } from '../email/email.service';
 
 const LB_TO_KG = 0.45359237;
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -19,7 +21,82 @@ const DEFAULTS: Record<CourierCarrier, Partial<Prisma.CourierRateCardCreateInput
 
 @Injectable()
 export class ExportCourierService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+  ) {}
+
+  /** Compute the customer quote (ex-GST) for both carriers and email it. */
+  async emailQuote(dto: EmailQuoteDto) {
+    const base = {
+      country: dto.country,
+      unit: dto.unit,
+      lengthCm: dto.lengthCm,
+      widthCm: dto.widthCm,
+      heightCm: dto.heightCm,
+      actualWeightKg: dto.actualWeightKg,
+      boxes: dto.boxes,
+    };
+    const carriers: CourierCarrier[] = [CourierCarrier.DHL, CourierCarrier.FEDEX];
+    const label: Record<CourierCarrier, string> = {
+      [CourierCarrier.DHL]: 'DHL',
+      [CourierCarrier.FEDEX]: 'FedEx',
+    };
+    const fmt = (v: number, sym: string) =>
+      `${sym}${v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const lines: string[] = [];
+    const rows: { carrier: string; ok: boolean; inr?: number }[] = [];
+    let any: Awaited<ReturnType<typeof this.calculate>> | undefined;
+
+    for (const carrier of carriers) {
+      try {
+        const r = await this.calculate({ carrier, ...base });
+        any = r;
+        rows.push({ carrier: label[carrier], ok: true, inr: r.selling.inr });
+        lines.push(
+          `${label[carrier]}:  ${fmt(r.selling.inr, '₹')}  |  ${fmt(r.selling.usd, '$')}  |  ` +
+            `${fmt(r.selling.gbp, '£')}  |  ${fmt(r.selling.eur, '€')}`,
+        );
+      } catch {
+        rows.push({ carrier: label[carrier], ok: false });
+        lines.push(`${label[carrier]}:  not available for this destination`);
+      }
+    }
+
+    if (!any) {
+      throw new BadRequestException('No quote available for either carrier.');
+    }
+
+    const header = [
+      `Destination:  ${any.country}`,
+      `Boxes:        ${any.boxes}`,
+      `Chargeable:   ${any.chargeableWeightKg} kg`,
+      '',
+      'Customer quote (excluding GST):',
+    ];
+    const text = [
+      'Dear Customer,',
+      '',
+      'Please find the export courier quote below.',
+      '',
+      ...header,
+      ...lines,
+      '',
+      'Rates are indicative and exclude GST. Please contact us to proceed.',
+      '',
+      'Regards,',
+      "D'Decor — Dlogix",
+    ].join('\n');
+
+    await this.email.send({
+      to: dto.to,
+      cc: dto.cc,
+      subject: `Export courier quote — ${any.country}`,
+      text,
+    });
+    return { ok: true, destination: any.country, quotes: rows };
+  }
 
   /** Parse an uploaded workbook and (re)load DHL + FedEx zone lists & price matrices. */
   async importWorkbook(buffer: Buffer) {

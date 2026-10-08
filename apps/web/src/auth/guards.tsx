@@ -18,6 +18,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** End-users may only use the calculator — send them there from any other page. */
+export function StaffOnly({ children }: { children: ReactNode }) {
+  const { data } = useSession();
+  if (!data) return null;
+  if (data.role === 'END_USER') return <Navigate to="/app/courier/calculator" replace />;
+  return <>{children}</>;
+}
+
 /** Gate a page to specific roles; shows an access-denied panel otherwise. */
 export function RequireRole({
   roles,

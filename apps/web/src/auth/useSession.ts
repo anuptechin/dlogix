@@ -13,3 +13,5 @@ export function useSession() {
 /** Roles that may access courier rate cards + reports/audit + user admin. */
 export const canManage = (role?: Role) => role === 'ADMIN' || role === 'MANAGEMENT';
 export const isAdmin = (role?: Role) => role === 'ADMIN';
+/** End-users only get the calculator (quote-only output). */
+export const isEndUser = (role?: Role) => role === 'END_USER';

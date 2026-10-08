@@ -13,6 +13,7 @@ enum UserRole {
   DOCUMENTATION
   MANAGEMENT
   ADMIN
+  END_USER
 }
 
 enum ShipmentDirection {

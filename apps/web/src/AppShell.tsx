@@ -4,7 +4,7 @@ import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getHealth, logLoginEvent, logout } from './api/client';
-import { useSession, canManage, isAdmin } from './auth/useSession';
+import { useSession, canManage, isAdmin, isEndUser } from './auth/useSession';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -34,18 +34,19 @@ const NAV = [
   { key: 'dashboard', label: 'Dashboard', path: '/app' },
   { key: 'enquiries', label: 'Enquiries', path: '/app/enquiries' },
   { key: 'vendors', label: 'Vendors', path: '/app/vendors' },
-  { key: 'calculator', label: 'Courier Calculator', path: '/app/courier/calculator' },
+  { key: 'calculator', label: 'Courier Calculator', path: '/app/courier/calculator', endUserOk: true },
   { key: 'ratecards', label: 'Courier Rate Cards', path: '/app/courier/rate-cards', manage: true },
   { key: 'reports', label: 'Reports', path: '/app/reports', manage: true },
   { key: 'audit', label: 'Audit Log', path: '/app/audit', manage: true },
   { key: 'users', label: 'Users & Roles', path: '/app/users', admin: true },
-] as { key: string; label: string; path: string; manage?: boolean; admin?: boolean }[];
+] as { key: string; label: string; path: string; manage?: boolean; admin?: boolean; endUserOk?: boolean }[];
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: 'Admin',
   MANAGEMENT: 'Manager',
   LOGISTICS: 'Logistics User',
   DOCUMENTATION: 'Documentation',
+  END_USER: 'End User',
 };
 
 export default function AppShell() {
@@ -55,9 +56,9 @@ export default function AppShell() {
   const { data: me } = useSession();
   const role = me?.role;
 
-  const nav = NAV.filter(
-    (n) => (!n.manage || canManage(role)) && (!n.admin || isAdmin(role)),
-  );
+  const nav = isEndUser(role)
+    ? NAV.filter((n) => n.endUserOk)
+    : NAV.filter((n) => (!n.manage || canManage(role)) && (!n.admin || isAdmin(role)));
 
   const signOut = async () => {
     try {
