@@ -162,6 +162,7 @@ export default function FedexCheckPage() {
             pagination={{ pageSize: 25, showSizeChanger: true }}
             columns={[
               { title: 'Sheet', dataIndex: 'sheet', width: 80 },
+              { title: 'AWB', dataIndex: 'awb', width: 130 },
               { title: 'Destination', dataIndex: 'destCountry' },
               { title: 'Final Wt (kg)', dataIndex: 'finalWt', align: 'right', render: (v: number) => v },
               { title: 'Zone', dataIndex: 'zone', width: 70, render: (v) => v ?? '—' },

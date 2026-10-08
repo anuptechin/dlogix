@@ -1,14 +1,15 @@
 import ExcelJS from 'exceljs';
 
 // Fixed columns in the FedEx monthly report sheets (as specified):
-//   J (10) = Country (destination)   M (13) = Dimwgt (final weight)   Q (17) = Subtotal (base rate)
-// L (12) = Weight is used only as a fallback when Dimwgt is blank.
+//   C (3) = AWB   J (10) = Country (destination)   M (13) = Dimwgt (final weight)
+//   Q (17) = Subtotal (base rate)   L (12) = Weight (fallback when Dimwgt blank)
 // We still verify the sheet's J/M/Q headers are Country/Dimwgt/Subtotal so the
 // non-data sheets (IMPORT Shipment, Duty & Tax) are skipped.
-const COL = { dest: 10, weight: 13, actualWeight: 12, base: 17 } as const;
+const COL = { awb: 3, dest: 10, weight: 13, actualWeight: 12, base: 17 } as const;
 
 export interface FedexReportRow {
   sheet: string;
+  awb: string;
   destCountry: string;
   finalWt: number;
   reportedBase: number;
@@ -57,11 +58,12 @@ export async function parseFedexReport(buffer: Buffer): Promise<FedexReportRow[]
     if (!isReportSheet(ws)) return;
     for (let r = 2; r <= ws.rowCount; r++) {
       const row = ws.getRow(r);
+      const awb = cellStr(row.getCell(COL.awb).value) ?? '';
       const destCountry = cellStr(row.getCell(COL.dest).value);
       const finalWt = cellNum(row.getCell(COL.weight).value) ?? cellNum(row.getCell(COL.actualWeight).value);
       const reportedBase = cellNum(row.getCell(COL.base).value);
       if (!destCountry || !finalWt || finalWt <= 0 || reportedBase == null) continue;
-      out.push({ sheet: ws.name, destCountry, finalWt, reportedBase });
+      out.push({ sheet: ws.name, awb, destCountry, finalWt, reportedBase });
     }
   });
   return out;

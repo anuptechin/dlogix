@@ -297,6 +297,7 @@ export class ExportCourierService {
     const ws = wb.addWorksheet('FedEx Check');
     ws.columns = [
       { header: 'Sheet', key: 'sheet', width: 10 },
+      { header: 'AWB', key: 'awb', width: 16 },
       { header: 'Destination', key: 'destCountry', width: 24 },
       { header: 'Final Wt (kg)', key: 'finalWt', width: 14 },
       { header: 'Zone', key: 'zone', width: 8 },

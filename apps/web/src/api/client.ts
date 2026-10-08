@@ -945,6 +945,7 @@ export async function updateRateCard(
 export type FedexCheckStatus = 'CORRECT' | 'INCORRECT' | 'NO_ZONE' | 'NO_RATE';
 export interface FedexCheckRow {
   sheet: string;
+  awb: string;
   destCountry: string;
   finalWt: number;
   reportedBase: number;
