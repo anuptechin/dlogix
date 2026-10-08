@@ -13,7 +13,21 @@
   border-radius: 16px;
   overflow: hidden;
   background: #fff;
-  height: 100%;
+}
+.calc__carrier {
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #0a2a4e;
+  background: #fff;
+  border-bottom: 1px solid #eef3f9;
+  letter-spacing: 0.02em;
+}
+.calc__carrier-dest {
+  margin-left: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #5b6b7c;
 }
 .calc__total {
   background: var(--brand-gradient, linear-gradient(135deg, #46a8ff, #1e7fe6, #0d3f7a));
