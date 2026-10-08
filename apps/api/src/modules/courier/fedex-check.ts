@@ -1,8 +1,10 @@
 import ExcelJS from 'exceljs';
 
-// Columns in the FedEx monthly report sheets (per D'Decor "FEDEX Report" layout):
+// Fixed columns in the FedEx monthly report sheets (as specified):
 //   J (10) = Country (destination)   M (13) = Dimwgt (final weight)   Q (17) = Subtotal (base rate)
 // L (12) = Weight is used only as a fallback when Dimwgt is blank.
+// We still verify the sheet's J/M/Q headers are Country/Dimwgt/Subtotal so the
+// non-data sheets (IMPORT Shipment, Duty & Tax) are skipped.
 const COL = { dest: 10, weight: 13, actualWeight: 12, base: 17 } as const;
 
 export interface FedexReportRow {
