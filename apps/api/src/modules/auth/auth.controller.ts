@@ -44,6 +44,14 @@ export class AuthController {
     return user;
   }
 
+  // ── Dev-only login: email, no OTP (service rejects in production) ──
+  @Post('dev-login')
+  async devLogin(@Body() dto: RequestOtpDto, @Res({ passthrough: true }) res: CookieRes) {
+    const user = await this.auth.devLogin(dto.email);
+    res.cookie(COOKIE, user.id, COOKIE_OPTS);
+    return user;
+  }
+
   // ── Password login (fallback) ──
   @Post('login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: CookieRes) {

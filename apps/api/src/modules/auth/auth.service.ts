@@ -115,6 +115,20 @@ export class AuthService {
     return user && user.isActive ? this.publicUser(user) : null;
   }
 
+  // ── Dev-only: sign in by email with no OTP/password (disabled in production). ──
+  async devLogin(email: string): Promise<PublicUser> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new UnauthorizedException('Dev login is disabled.');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('No active user with that email.');
+    }
+    return this.publicUser(user);
+  }
+
   private publicUser(u: User): PublicUser {
     return { id: u.id, name: u.name, email: u.email, role: u.role };
   }

@@ -11,7 +11,9 @@ import {
 } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { requestOtp, verifyOtp } from '../api/client';
+import { devLogin, requestOtp, verifyOtp } from '../api/client';
+
+const DEV = import.meta.env.DEV;
 import './login.css';
 
 const { Text, Link } = Typography;
@@ -51,6 +53,16 @@ export default function LoginPage() {
       navigate('/app', { replace: true });
     },
     onError: (err) => setError(errMsg(err, 'Invalid code. Try again.')),
+  });
+
+  // Dev: sign in directly from the email step (no OTP).
+  const devMut = useMutation({
+    mutationFn: (e: string) => devLogin(e),
+    onSuccess: (user) => {
+      qc.setQueryData(['me'], user);
+      navigate('/app', { replace: true });
+    },
+    onError: (err) => setError(errMsg(err, 'Dev login failed.')),
   });
 
   return (
@@ -106,7 +118,8 @@ export default function LoginPage() {
             onFinish={(v) => {
               setError(null);
               setEmail(v.email);
-              sendMut.mutate(v.email);
+              if (DEV) devMut.mutate(v.email);
+              else sendMut.mutate(v.email);
             }}
           >
             <Form.Item
@@ -116,8 +129,14 @@ export default function LoginPage() {
             >
               <Input size="large" prefix={<MailOutlined />} placeholder="you@ddecor.com" autoFocus />
             </Form.Item>
-            <Button type="primary" htmlType="submit" size="large" block loading={sendMut.isPending}>
-              Send code
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              block
+              loading={DEV ? devMut.isPending : sendMut.isPending}
+            >
+              {DEV ? 'Sign in (dev — no code)' : 'Send code'}
             </Button>
           </Form>
         ) : (

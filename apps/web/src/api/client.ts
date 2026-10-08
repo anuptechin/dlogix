@@ -35,6 +35,11 @@ export async function verifyOtp(email: string, code: string): Promise<SessionUse
   const { data } = await api.post<SessionUser>('/auth/verify-otp', { email, code });
   return data;
 }
+// Dev-only: sign in by email with no OTP (the API rejects this in production).
+export async function devLogin(email: string): Promise<SessionUser> {
+  const { data } = await api.post<SessionUser>('/auth/dev-login', { email });
+  return data;
+}
 export async function login(email: string, password: string): Promise<SessionUser> {
   const { data } = await api.post<SessionUser>('/auth/login', { email, password });
   return data;
