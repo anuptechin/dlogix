@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -231,20 +231,7 @@ export default function CalculatorPage() {
                 </Text>
               </div>
             ) : (
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                {CARRIERS.map((carrier) =>
-                  results[carrier] ? (
-                    <CarrierResult key={carrier} carrier={carrier} result={results[carrier]!} />
-                  ) : (
-                    <Alert
-                      key={carrier}
-                      type="warning"
-                      showIcon
-                      message={`${CARRIER_LABEL[carrier]}: ${errors[carrier] ?? 'No quote'}`}
-                    />
-                  ),
-                )}
-              </Space>
+              <Comparison results={results} errors={errors} />
             )}
           </Col>
         </Row>
@@ -253,93 +240,95 @@ export default function CalculatorPage() {
   );
 }
 
-function CarrierResult({ carrier, result }: { carrier: CourierCarrier; result: ExportCalcResult }) {
+type Row = { section: string } | { label: string; val: (r: ExportCalcResult) => string; money?: boolean };
+
+const ROWS: Row[] = [
+  { section: 'Our cost (all-in)' },
+  { label: 'INR', val: (r) => money(r.cost.inr) },
+  { label: 'USD', val: (r) => money(r.cost.usd, 'usd') },
+  { label: 'GBP', val: (r) => money(r.cost.gbp, 'gbp') },
+  { label: 'EUR', val: (r) => money(r.cost.eur, 'eur') },
+  { section: 'Quote to customer · ex-GST' },
+  { label: 'INR', val: (r) => money(r.selling.inr), money: true },
+  { label: 'USD', val: (r) => money(r.selling.usd, 'usd') },
+  { label: 'GBP', val: (r) => money(r.selling.gbp, 'gbp') },
+  { label: 'EUR', val: (r) => money(r.selling.eur, 'eur') },
+  { section: 'Shipment' },
+  { label: 'Zone', val: (r) => r.zone },
+  { label: 'Chargeable wt', val: (r) => `${r.chargeableWeightKg} kg` },
+  { label: 'Billed wt', val: (r) => `${r.billedWeightKg} kg` },
+  { label: 'Regime', val: (r) => (r.regime === 'PERKG' ? 'Per-kg (heavy)' : 'Flat slab') },
+];
+
+function Comparison({
+  results,
+  errors,
+}: {
+  results: Partial<Record<CourierCarrier, ExportCalcResult>>;
+  errors: Partial<Record<CourierCarrier, string>>;
+}) {
+  const any = results.DHL ?? results.FEDEX;
+  if (!any) {
+    return (
+      <Alert
+        type="warning"
+        showIcon
+        message="No quote for either carrier"
+        description={CARRIERS.map((c) => `${CARRIER_LABEL[c]}: ${errors[c] ?? '—'}`).join('  ·  ')}
+      />
+    );
+  }
+
+  // Cheaper customer quote (INR) wins the highlight.
+  const bestCarrier: CourierCarrier | null =
+    results.DHL && results.FEDEX
+      ? results.DHL.selling.inr <= results.FEDEX.selling.inr
+        ? 'DHL'
+        : 'FEDEX'
+      : (results.DHL && 'DHL') || (results.FEDEX && 'FEDEX') || null;
+
   return (
-    <div className="calc__result">
-      <div className="calc__carrier">
-        {CARRIER_LABEL[carrier]}
-        <span className="calc__carrier-dest">· {result.country}</span>
-      </div>
-      <div className="calc__total">
-        <div className="calc__cols">
-          <div className="calc__col calc__col--cost">
-            <div className="calc__total-label">Our cost (all-in)</div>
-            <div className="calc__cost-value">{money(result.cost.inr)}</div>
-            <div className="calc__pills">
-              <span className="calc__pill">{money(result.cost.usd, 'usd')}</span>
-              <span className="calc__pill">{money(result.cost.gbp, 'gbp')}</span>
-              <span className="calc__pill">{money(result.cost.eur, 'eur')}</span>
-            </div>
-          </div>
-          <div className="calc__col">
-            <div className="calc__total-label">Quote to customer · ex-GST</div>
-            <div className="calc__total-value">{money(result.selling.inr)}</div>
-            <div className="calc__pills">
-              <span className="calc__pill">{money(result.selling.usd, 'usd')}</span>
-              <span className="calc__pill">{money(result.selling.gbp, 'gbp')}</span>
-              <span className="calc__pill">{money(result.selling.eur, 'eur')}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="calc__meta">
-        <span className="calc__chip">
-          Boxes <b>{result.boxes}</b>
-        </span>
-        <span className="calc__chip">
-          Zone <b>{result.zone}</b>
-        </span>
-        <span className="calc__chip">
-          Chargeable <b>{result.chargeableWeightKg} kg</b>
-        </span>
-        <span className="calc__chip">
-          Billed <b>{result.billedWeightKg} kg</b>
-        </span>
-        <span className="calc__chip">
-          {result.regime === 'PERKG' ? 'Per-kg (heavy)' : 'Flat slab'}
+    <div className="cmp">
+      <div className="cmp__head">
+        <span className="cmp__dest">{any.country}</span>
+        <span className="cmp__sub">
+          {any.boxes} box{any.boxes > 1 ? 'es' : ''} · {any.chargeableWeightKg} kg chargeable
         </span>
       </div>
 
-      <div className="calc__rows">
-        <Row>
-          <Col xs={24} sm={12} style={{ paddingRight: 16 }}>
-            <div className="calc__row">
-              <span className="calc__row-label">Actual weight</span>
-              <span className="calc__row-value">{result.actualWeightKg} kg</span>
+      <div className="cmp__grid">
+        <div className="cmp__cell cmp__corner" />
+        {CARRIERS.map((c) => (
+          <div key={c} className="cmp__cell cmp__carhead">
+            {CARRIER_LABEL[c]}
+            {!results[c] && <span className="cmp__na"> · n/a</span>}
+            {results[c] && bestCarrier === c && <span className="cmp__badge">cheapest</span>}
+          </div>
+        ))}
+
+        {ROWS.map((row, i) =>
+          'section' in row ? (
+            <div key={`s${i}`} className="cmp__cell cmp__section">
+              {row.section}
             </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Volumetric</span>
-              <span className="calc__row-value">{result.volumetricWeightKg} kg</span>
-            </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Base rate</span>
-              <span className="calc__row-value">{money(result.breakdown.base)}</span>
-            </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Rate / kg</span>
-              <span className="calc__row-value">{money(result.breakdown.ratePerKg)}</span>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} style={{ paddingLeft: 16 }}>
-            <div className="calc__row">
-              <span className="calc__row-label">Surcharge / kg</span>
-              <span className="calc__row-value">{money(result.breakdown.surchargePerKg)}</span>
-            </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Fuel ({Math.round(result.breakdown.fuelPct * 100)}%)</span>
-              <span className="calc__row-value">{money(result.breakdown.fuelPerKg)} /kg</span>
-            </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Subtotal / kg</span>
-              <span className="calc__row-value">{money(result.breakdown.subtotalPerKg)}</span>
-            </div>
-            <div className="calc__row">
-              <span className="calc__row-label">Margin</span>
-              <span className="calc__row-value">×{result.breakdown.marginX}</span>
-            </div>
-          </Col>
-        </Row>
+          ) : (
+            <Fragment key={`r${i}`}>
+              <div className="cmp__cell cmp__label">{row.label}</div>
+              {CARRIERS.map((c) => {
+                const r = results[c];
+                const best = row.money && bestCarrier === c;
+                return (
+                  <div
+                    key={c}
+                    className={`cmp__cell cmp__val${best ? ' cmp__val--best' : ''}`}
+                  >
+                    {r ? row.val(r) : '—'}
+                  </div>
+                );
+              })}
+            </Fragment>
+          ),
+        )}
       </div>
     </div>
   );
