@@ -236,6 +236,7 @@ export class ExportCourierService {
         gstAmount: r2(gstAmount),
         grandTotalInr: r2(grandTotalInr),
       },
+      cost: conv(costToUs),
       selling: conv(sellingInr),
       grandTotal: conv(grandTotalInr),
       config: {

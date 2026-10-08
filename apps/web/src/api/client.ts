@@ -914,6 +914,7 @@ export interface ExportCalcResult {
     gstAmount: number;
     grandTotalInr: number;
   };
+  cost: { inr: number; usd: number; gbp: number; eur: number };
   selling: { inr: number; usd: number; gbp: number; eur: number };
   grandTotal: { inr: number; usd: number; gbp: number; eur: number };
 }

@@ -222,7 +222,12 @@ export default function CalculatorPage() {
                   <div className="calc__cols">
                     <div className="calc__col calc__col--cost">
                       <div className="calc__total-label">Our cost (all-in)</div>
-                      <div className="calc__cost-value">{money(result.breakdown.costToUs)}</div>
+                      <div className="calc__cost-value">{money(result.cost.inr)}</div>
+                      <div className="calc__pills">
+                        <span className="calc__pill">{money(result.cost.usd, 'usd')}</span>
+                        <span className="calc__pill">{money(result.cost.gbp, 'gbp')}</span>
+                        <span className="calc__pill">{money(result.cost.eur, 'eur')}</span>
+                      </div>
                     </div>
                     <div className="calc__col">
                       <div className="calc__total-label">Quote to customer · ex-GST</div>

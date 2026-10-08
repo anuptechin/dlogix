@@ -31,7 +31,7 @@
 .calc__col--cost {
   background: rgba(3, 16, 34, 0.22);
   flex: 0 1 auto;
-  min-width: 170px;
+  min-width: 190px;
 }
 .calc__total-label {
   font-size: 12px;
