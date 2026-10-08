@@ -243,11 +243,6 @@ export default function CalculatorPage() {
 type Row = { section: string } | { label: string; val: (r: ExportCalcResult) => string; money?: boolean };
 
 const ROWS: Row[] = [
-  { section: 'Our cost (all-in)' },
-  { label: 'INR', val: (r) => money(r.cost.inr) },
-  { label: 'USD', val: (r) => money(r.cost.usd, 'usd') },
-  { label: 'GBP', val: (r) => money(r.cost.gbp, 'gbp') },
-  { label: 'EUR', val: (r) => money(r.cost.eur, 'eur') },
   { section: 'Quote to customer · ex-GST' },
   { label: 'INR', val: (r) => money(r.selling.inr), money: true },
   { label: 'USD', val: (r) => money(r.selling.usd, 'usd') },
@@ -260,6 +255,11 @@ const ROWS: Row[] = [
   { label: 'Chargeable wt', val: (r) => `${r.chargeableWeightKg} kg` },
   { label: 'Billed wt', val: (r) => `${r.billedWeightKg} kg` },
   { label: 'Regime', val: (r) => (r.regime === 'PERKG' ? 'Per-kg (heavy)' : 'Flat slab') },
+  { section: 'Our cost (all-in)' },
+  { label: 'INR', val: (r) => money(r.cost.inr) },
+  { label: 'USD', val: (r) => money(r.cost.usd, 'usd') },
+  { label: 'GBP', val: (r) => money(r.cost.gbp, 'gbp') },
+  { label: 'EUR', val: (r) => money(r.cost.eur, 'eur') },
   { section: 'Rate build-up' },
   { label: 'Base rate', val: (r) => money(r.breakdown.base) },
   { label: 'Rate / kg', val: (r) => money(r.breakdown.ratePerKg) },
