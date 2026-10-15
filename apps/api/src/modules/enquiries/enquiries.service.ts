@@ -215,9 +215,11 @@ export class EnquiriesService {
     const containerSize =
       (enquiry.containers ?? []).map((c) => `${c.qty} x ${c.containerType}`).join(', ') || null;
     const cargo = enquiry.cargoDesc?.trim() || null; // "Cargo description" — vendor-facing
+    const pickup = enquiry.pickupAddress?.trim() || null; // origin / pickup address (esp. Import)
 
     const bannerLines: string[] = [];
     if (originName) bannerLines.push(`  Origin:            ${originName}`);
+    if (pickup) bannerLines.push(`  Pickup address:    ${pickup}`);
     if (weight != null) bannerLines.push(`  Weight:            ${weight} kg`);
     if (containerSize) bannerLines.push(`  Container size:    ${containerSize}`);
     if (cargo) bannerLines.push(`  Cargo description: ${cargo}`);
@@ -234,6 +236,7 @@ export class EnquiriesService {
       `Shipment &middot; ${esc(enquiry.enquiryNo)}</div>` +
       `<table style="margin-top:8px;border-collapse:collapse">` +
       hrow('Origin', originName) +
+      hrow('Pickup address', pickup) +
       hrow('Weight', weight != null ? `${weight} kg` : null) +
       hrow('Container size', containerSize) +
       hrow('Cargo description', cargo) +
