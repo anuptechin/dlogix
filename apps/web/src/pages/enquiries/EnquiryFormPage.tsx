@@ -92,6 +92,23 @@ export default function EnquiryFormPage() {
   const isFcl = mode === 'FCL';
   const isImport = direction === 'IMPORT';
 
+  // Weight display unit: Sea FCL in MT, everything else in kg. The stored form
+  // value stays in kg (formatter/parser only change what's shown/typed), so the
+  // chargeable-weight calc, save and email banner are unaffected. Switching mode
+  // auto-reconverts the shown number.
+  const weightUnit = isFcl ? 'MT' : 'kg';
+  const wtFormat = (v: number | string | undefined) =>
+    v === undefined || v === null || v === ''
+      ? ''
+      : isFcl
+        ? String(+(Number(v) / 1000).toFixed(3))
+        : String(v);
+  const wtParse = (s: string | undefined) => {
+    const n = parseFloat(String(s ?? '').replace(/[^\d.]/g, ''));
+    if (Number.isNaN(n)) return '' as unknown as number;
+    return isFcl ? Math.round(n * 1000 * 1000) / 1000 : n;
+  };
+
   const { data: locations } = useQuery({ queryKey: ['locations'], queryFn: listLocations });
   const { data: parties } = useQuery({ queryKey: ['parties'], queryFn: () => listParties() });
   const { data: incoterms } = useQuery({ queryKey: ['incoterms'], queryFn: listIncoterms });
@@ -509,8 +526,8 @@ export default function EnquiryFormPage() {
                       </Form.Item>
                     </Col>
                     <Col span={6}><Form.Item label="No. of packages" name="packageCount"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-                    <Col span={6}><Form.Item label="Gross weight (kg)" name="weightKg"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
-                    <Col span={6}><Form.Item label="Net weight (kg)" name="netWeightKg"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+                    <Col span={6}><Form.Item label={`Gross weight (${weightUnit})`} name="weightKg"><InputNumber min={0} style={{ width: '100%' }} addonAfter={weightUnit} formatter={wtFormat} parser={wtParse} /></Form.Item></Col>
+                    <Col span={6}><Form.Item label={`Net weight (${weightUnit})`} name="netWeightKg"><InputNumber min={0} style={{ width: '100%' }} addonAfter={weightUnit} formatter={wtFormat} parser={wtParse} /></Form.Item></Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={8}><Form.Item label="Cargo value" name="cargoValue"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
