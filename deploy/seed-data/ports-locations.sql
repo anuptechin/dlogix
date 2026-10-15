@@ -1589,4 +1589,18 @@ INSERT INTO public.ports_locations (id,kind,code,name,country) VALUES
 ('d5ffb058-1aa1-475d-bfdc-af0c2d2dcf82','AIRPORT',NULL,'MAURITIUS','Mauritius'),
 ('c05c4c13-f90c-4447-a1bf-802b21935933','COURIER',NULL,'MAURITIUS.','Mauritius'),
 ('6097adac-dd8e-4aca-b855-a4b09603a2be','PORT',NULL,'MAURITIUS..','Mauritius');
+-- Indian export sea ports (added)
+INSERT INTO public.ports_locations (id,kind,code,name,country) VALUES
+  (gen_random_uuid(),'PORT','INNSA','Nhava Sheva (JNPT)','India'),
+  (gen_random_uuid(),'PORT','INMUN','Mundra','India'),
+  (gen_random_uuid(),'PORT','INBOM','Mumbai (BPT)','India'),
+  (gen_random_uuid(),'PORT','INHZA','Hazira','India'),
+  (gen_random_uuid(),'PORT','INPAV','Pipavav','India'),
+  (gen_random_uuid(),'PORT','INMAA','Chennai','India'),
+  (gen_random_uuid(),'PORT','INKAT','Kattupalli','India'),
+  (gen_random_uuid(),'PORT','INCCU','Kolkata','India'),
+  (gen_random_uuid(),'PORT','INCOK','Cochin (Kochi)','India'),
+  (gen_random_uuid(),'PORT','INTUT','Tuticorin (V.O.C.)','India'),
+  (gen_random_uuid(),'PORT','INVTZ','Visakhapatnam','India'),
+  (gen_random_uuid(),'PORT','INIXY','Kandla','India');
 COMMIT;
