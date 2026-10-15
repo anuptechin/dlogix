@@ -1603,4 +1603,14 @@ INSERT INTO public.ports_locations (id,kind,code,name,country) VALUES
   (gen_random_uuid(),'PORT','INTUT','Tuticorin (V.O.C.)','India'),
   (gen_random_uuid(),'PORT','INVTZ','Visakhapatnam','India'),
   (gen_random_uuid(),'PORT','INIXY','Kandla','India');
+-- Indian export airports (added)
+INSERT INTO public.ports_locations (id,kind,code,name,country) VALUES
+  (gen_random_uuid(),'AIRPORT','BOM','Mumbai (Chhatrapati Shivaji)','India'),
+  (gen_random_uuid(),'AIRPORT','NMI','Navi Mumbai','India'),
+  (gen_random_uuid(),'AIRPORT','DEL','Delhi (Indira Gandhi)','India'),
+  (gen_random_uuid(),'AIRPORT','MAA','Chennai','India'),
+  (gen_random_uuid(),'AIRPORT','BLR','Bengaluru','India'),
+  (gen_random_uuid(),'AIRPORT','HYD','Hyderabad','India'),
+  (gen_random_uuid(),'AIRPORT','CCU','Kolkata','India'),
+  (gen_random_uuid(),'AIRPORT','AMD','Ahmedabad','India');
 COMMIT;

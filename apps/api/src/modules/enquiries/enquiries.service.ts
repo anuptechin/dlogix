@@ -207,6 +207,38 @@ export class EnquiriesService {
       throw new BadRequestException('Add at least one vendor before sending');
     }
 
+    // ── Top banner fields (same for every invited vendor) ──
+    const kg = (d: unknown) => (d == null ? null : Number(d));
+    const originName = enquiry.origin?.name ?? null;
+    const destName = enquiry.destination?.name ?? null;
+    const weight = kg(enquiry.weightKg) ?? kg(enquiry.chargeableWeight);
+    const containerSize =
+      (enquiry.containers ?? []).map((c) => `${c.qty} x ${c.containerType}`).join(', ') || null;
+    const cargo = enquiry.cargoDesc?.trim() || null; // "Cargo description" — vendor-facing
+
+    const bannerLines: string[] = [];
+    if (originName) bannerLines.push(`  Origin:            ${originName}`);
+    if (weight != null) bannerLines.push(`  Weight:            ${weight} kg`);
+    if (containerSize) bannerLines.push(`  Container size:    ${containerSize}`);
+    if (cargo) bannerLines.push(`  Cargo description: ${cargo}`);
+
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const hrow = (k: string, v: string | null) =>
+      v
+        ? `<tr><td style="padding:3px 18px 3px 0;color:#9fc0e8;font-size:13px;white-space:nowrap">${k}</td>` +
+          `<td style="font-size:14px;color:#ffffff"><b>${esc(v)}</b></td></tr>`
+        : '';
+    const bannerHtml =
+      `<div style="background:#0a2a4e;border-radius:10px;padding:16px 20px">` +
+      `<div style="color:#7fc4ff;font-size:12px;letter-spacing:.1em;text-transform:uppercase">` +
+      `Shipment &middot; ${esc(enquiry.enquiryNo)}</div>` +
+      `<table style="margin-top:8px;border-collapse:collapse">` +
+      hrow('Origin', originName) +
+      hrow('Weight', weight != null ? `${weight} kg` : null) +
+      hrow('Container size', containerSize) +
+      hrow('Cargo description', cargo) +
+      `</table></div>`;
+
     for (const ev of enquiry.enquiryVendors) {
       const link = `${webBaseUrl()}/quote/${ev.inviteToken}`;
       const deadline = enquiry.quoteDeadline
@@ -217,13 +249,17 @@ export class EnquiriesService {
         cc: ev.vendor.ccEmails,
         subject: `Request for Quotation — ${enquiry.enquiryNo}`,
         text: [
+          '==================== SHIPMENT ====================',
+          ...bannerLines,
+          '==================================================',
+          '',
           `Dear ${ev.vendor.contactPerson ?? ev.vendor.name},`,
           '',
           `D'Decor invites you to quote for the following shipment:`,
           `  Enquiry:     ${enquiry.enquiryNo}`,
           `  Direction:   ${enquiry.direction}`,
           `  Mode:        ${enquiry.mode}`,
-          `  Route:       ${enquiry.origin?.name ?? '—'} → ${enquiry.destination?.name ?? '—'}`,
+          `  Route:       ${originName ?? '—'} → ${destName ?? '—'}`,
           `  Submit by:   ${deadline}`,
           '',
           `Please submit your quotation here:`,
@@ -232,6 +268,19 @@ export class EnquiriesService {
           `Regards,`,
           `D'Decor Logistics`,
         ].join('\n'),
+        html:
+          `<div style="font-family:Arial,Helvetica,sans-serif;color:#1f2d3d;max-width:620px">` +
+          bannerHtml +
+          `<p>Dear ${esc(ev.vendor.contactPerson ?? ev.vendor.name)},</p>` +
+          `<p>D'Decor invites you to quote for the shipment above — ` +
+          `<b>${esc(enquiry.enquiryNo)}</b> (${esc(enquiry.direction)} &middot; ${esc(enquiry.mode)}, ` +
+          `${esc(originName ?? '—')} &rarr; ${esc(destName ?? '—')}). ` +
+          `Please submit by <b>${esc(deadline)}</b>.</p>` +
+          `<p><a href="${link}" style="display:inline-block;background:#1e7fe6;color:#ffffff;` +
+          `padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">` +
+          `Submit your quotation</a></p>` +
+          `<p style="color:#5b6b7c;font-size:12px">Or open this link:<br>${link}</p>` +
+          `<p>Regards,<br>D'Decor Logistics</p></div>`,
       });
       await this.prisma.enquiryVendor.update({
         where: { id: ev.id },
