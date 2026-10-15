@@ -211,7 +211,14 @@ export class EnquiriesService {
     const kg = (d: unknown) => (d == null ? null : Number(d));
     const originName = enquiry.origin?.name ?? null;
     const destName = enquiry.destination?.name ?? null;
-    const weight = kg(enquiry.weightKg) ?? kg(enquiry.chargeableWeight);
+    // Weight unit by mode: Sea FCL in MT (tonnes), everything else in kg.
+    const weightKgVal = kg(enquiry.weightKg) ?? kg(enquiry.chargeableWeight);
+    const weightStr =
+      weightKgVal == null
+        ? null
+        : enquiry.mode === 'FCL'
+          ? `${+(weightKgVal / 1000).toFixed(3)} MT`
+          : `${weightKgVal} kg`;
     const containerSize =
       (enquiry.containers ?? []).map((c) => `${c.qty} x ${c.containerType}`).join(', ') || null;
     const cargo = enquiry.cargoDesc?.trim() || null; // "Cargo description" — vendor-facing
@@ -220,7 +227,7 @@ export class EnquiriesService {
     const bannerLines: string[] = [];
     if (originName) bannerLines.push(`  Origin:            ${originName}`);
     if (pickup) bannerLines.push(`  Pickup address:    ${pickup}`);
-    if (weight != null) bannerLines.push(`  Weight:            ${weight} kg`);
+    if (weightStr) bannerLines.push(`  Weight:            ${weightStr}`);
     if (containerSize) bannerLines.push(`  Container size:    ${containerSize}`);
     if (cargo) bannerLines.push(`  Cargo description: ${cargo}`);
 
@@ -237,7 +244,7 @@ export class EnquiriesService {
       `<table style="margin-top:8px;border-collapse:collapse">` +
       hrow('Origin', originName) +
       hrow('Pickup address', pickup) +
-      hrow('Weight', weight != null ? `${weight} kg` : null) +
+      hrow('Weight', weightStr) +
       hrow('Container size', containerSize) +
       hrow('Cargo description', cargo) +
       `</table></div>`;
