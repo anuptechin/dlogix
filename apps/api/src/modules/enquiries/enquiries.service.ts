@@ -249,7 +249,11 @@ export class EnquiriesService {
       hrow('Cargo description', cargo) +
       `</table></div>`;
 
-    for (const ev of enquiry.enquiryVendors) {
+    // Only email vendors who haven't been invited yet — re-sending after adding
+    // a new vendor must NOT re-email the ones already invited.
+    const pendingVendors = enquiry.enquiryVendors.filter((ev) => ev.inviteSentAt == null);
+
+    for (const ev of pendingVendors) {
       const link = `${webBaseUrl()}/quote/${ev.inviteToken}`;
       const deadline = enquiry.quoteDeadline
         ? enquiry.quoteDeadline.toISOString().slice(0, 10)
@@ -294,7 +298,7 @@ export class EnquiriesService {
       });
       await this.prisma.enquiryVendor.update({
         where: { id: ev.id },
-        data: { invitedAt: new Date() },
+        data: { inviteSentAt: new Date() },
       });
     }
 

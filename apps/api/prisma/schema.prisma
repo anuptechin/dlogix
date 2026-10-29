@@ -235,6 +235,7 @@ model EnquiryVendor {
   tokenExpiresAt DateTime            @map("token_expires_at")
   status         EnquiryVendorStatus @default(INVITED)
   invitedAt      DateTime            @default(now()) @map("invited_at")
+  inviteSentAt   DateTime?           @map("invite_sent_at") // when the invite email actually went out (de-dup)
   respondedAt    DateTime?           @map("responded_at")
 
   enquiry   Enquiry          @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
