@@ -602,6 +602,18 @@ export interface ComparisonVendor {
   transshipments?: number | null;
   shippingLine?: string | null;
   vesselName?: string | null;
+  options?: ComparisonOption[];
+}
+
+export interface ComparisonOption {
+  optionId: string;
+  label?: string | null;
+  shippingLine?: string | null;
+  vesselName?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  transitTimeDays?: number | null;
+  totalInr: number;
 }
 
 export interface ComparisonHistoryRow {
@@ -640,11 +652,13 @@ export async function awardEnquiry(
   quotationId: string,
   reason?: string,
   internalEmails?: string[],
+  optionId?: string,
 ): Promise<EnquiryDetail> {
   const { data } = await api.post<EnquiryDetail>(`/enquiries/${id}/award`, {
     quotationId,
     reason,
     internalEmails,
+    optionId,
   });
   return data;
 }
@@ -1031,9 +1045,27 @@ export interface QuoteLine {
   chargeTypeId?: string | null;
   description?: string | null;
   unit?: string | null;
+  currency?: string | null;
   qty: Decimalish;
   rate: Decimalish;
   amount: Decimalish;
+}
+
+export interface QuotePortalOption {
+  id: string;
+  label?: string | null;
+  shippingLine?: string | null;
+  vesselName?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  transitTimeDays?: number | null;
+  transshipments?: number | null;
+  rateType?: RateType | null;
+  freeDetentionOriginDays?: number | null;
+  freeDetentionDestDays?: number | null;
+  freeDemurrageDestDays?: number | null;
+  totalInr: Decimalish;
+  lines: QuoteLine[];
 }
 
 export interface QuotePortalQuotation {
@@ -1055,10 +1087,12 @@ export interface QuotePortalQuotation {
   shippingLine?: string | null;
   vesselName?: string | null;
   lines: QuoteLine[];
+  options?: QuotePortalOption[];
 }
 
 export interface QuotePortalSummary {
   expired: boolean;
+  useOptions?: boolean;
   vendor: { name: string; contactPerson?: string | null };
   enquiry: {
     enquiryNo: string;
@@ -1090,18 +1124,37 @@ export interface QuotePortalSummary {
   quotation: QuotePortalQuotation;
 }
 
+export interface SaveQuotationLineInput {
+  chargeTypeId?: string;
+  description?: string;
+  unit?: string;
+  currency?: string;
+  qty: number;
+  rate: number;
+}
+
+export interface SaveQuotationOptionInput {
+  label?: string;
+  shippingLine?: string;
+  vesselName?: string;
+  etd?: string;
+  eta?: string;
+  transitTimeDays?: number;
+  transshipments?: number;
+  rateType?: RateType;
+  freeDetentionOriginDays?: number;
+  freeDetentionDestDays?: number;
+  freeDemurrageDestDays?: number;
+  lines: SaveQuotationLineInput[];
+}
+
 export interface SaveQuotationInput {
   currency?: string;
   validUntil?: string;
   transitTimeDays?: number;
   remarks?: string;
-  lines: {
-    chargeTypeId?: string;
-    description?: string;
-    unit?: string;
-    qty: number;
-    rate: number;
-  }[];
+  lines?: SaveQuotationLineInput[];
+  options?: SaveQuotationOptionInput[];
   rateType?: RateType;
   freeDetentionOriginDays?: number;
   freeDetentionDestDays?: number;

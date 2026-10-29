@@ -59,6 +59,7 @@ export default function ComparisonPage() {
   const [awardTarget, setAwardTarget] = useState<ComparisonVendor | null>(null);
   const [reason, setReason] = useState('');
   const [internalEmails, setInternalEmails] = useState<string[]>([]);
+  const [optionId, setOptionId] = useState<string | undefined>(undefined);
 
   const { data, isLoading } = useQuery({
     queryKey: ['comparison', id],
@@ -73,12 +74,14 @@ export default function ComparisonPage() {
         v.quotationId!,
         reason || undefined,
         internalEmails.length ? internalEmails : undefined,
+        optionId,
       ),
     onSuccess: (_res, v) => {
       message.success(`Awarded to ${v.name} — feedback sent to all vendors.`);
       setAwardTarget(null);
       setReason('');
       setInternalEmails([]);
+      setOptionId(undefined);
       qc.invalidateQueries({ queryKey: ['comparison', id] });
       qc.invalidateQueries({ queryKey: ['enquiry', id] });
       qc.invalidateQueries({ queryKey: ['enquiries'] });
@@ -465,7 +468,14 @@ export default function ComparisonPage() {
                               size="small"
                               type={isLowest(v) ? 'primary' : 'default'}
                               icon={<TrophyOutlined />}
-                              onClick={() => setAwardTarget(v)}
+                              onClick={() => {
+                                setAwardTarget(v);
+                                // default to the vendor's lowest-₹ option
+                                const best = (v.options ?? [])
+                                  .slice()
+                                  .sort((a, b) => a.totalInr - b.totalInr)[0];
+                                setOptionId(best?.optionId);
+                              }}
                             >
                               Award
                             </Button>
@@ -527,6 +537,22 @@ export default function ComparisonPage() {
           confirmation; other vendors get generic feedback with no rate or
           vendor disclosed. This can’t be undone.
         </p>
+        {(awardTarget?.options?.length ?? 0) > 1 && (
+          <>
+            <label style={{ display: 'block', marginBottom: 6, color: '#64788c' }}>
+              Shipping option to award
+            </label>
+            <Select
+              value={optionId}
+              onChange={setOptionId}
+              style={{ width: '100%', marginBottom: 14 }}
+              options={(awardTarget?.options ?? []).map((o, i) => ({
+                value: o.optionId,
+                label: `${o.shippingLine || `Option ${i + 1}`}${o.etd ? ` · ETD ${String(o.etd).slice(0, 10)}` : ''} — ${money(o.totalInr, 'INR')}`,
+              }))}
+            />
+          </>
+        )}
         <label
           style={{ display: 'block', marginBottom: 6, color: '#64788c' }}
         >

@@ -309,14 +309,22 @@ export class EnquiriesService {
     });
   }
 
-  async award(id: string, quotationId: string, reason?: string, internalEmails?: string[]) {
+  async award(
+    id: string,
+    quotationId: string,
+    reason?: string,
+    internalEmails?: string[],
+    optionId?: string,
+  ) {
     const enquiry = await this.prisma.enquiry.findUnique({
       where: { id },
       include: {
         origin: true,
         destination: true,
         award: true,
-        enquiryVendors: { include: { vendor: true, quotation: true } },
+        enquiryVendors: {
+          include: { vendor: true, quotation: { include: { options: true } } },
+        },
       },
     });
     if (!enquiry) throw new NotFoundException(`Enquiry ${id} not found`);
@@ -337,6 +345,15 @@ export class EnquiriesService {
 
     const user = await this.actingUser();
     const winnerQuote = winner.quotation;
+    // Which option is being awarded (multi-option quotes). Validate it belongs here.
+    const chosenOption = optionId
+      ? winnerQuote.options.find((o) => o.id === optionId)
+      : null;
+    if (optionId && !chosenOption) {
+      throw new BadRequestException('Selected option is not part of this quotation.');
+    }
+    const awardedAmount = chosenOption ? chosenOption.totalInr : winnerQuote.totalAmount;
+    const awardedCurrency = chosenOption ? 'INR' : winnerQuote.currency;
     const submittedVendors = enquiry.enquiryVendors.filter(
       (ev) => ev.quotation?.status === QuoteStatus.SUBMITTED,
     );
@@ -346,8 +363,9 @@ export class EnquiriesService {
         data: {
           enquiryId: id,
           quotationId,
+          quotationOptionId: chosenOption?.id ?? null,
           awardedById: user.id,
-          awardedAmount: winnerQuote.totalAmount,
+          awardedAmount,
           reason: reason ?? null,
           internalEmails: internalEmails ?? [],
         },
@@ -361,8 +379,8 @@ export class EnquiriesService {
           originId: enquiry.originId,
           destinationId: enquiry.destinationId,
           vendorId: winner.vendorId,
-          amount: winnerQuote.totalAmount,
-          currency: winnerQuote.currency,
+          amount: awardedAmount,
+          currency: awardedCurrency,
           awardedAt: new Date(),
         },
       });
@@ -402,17 +420,18 @@ export class EnquiriesService {
     });
 
     // Emails (outside the transaction).
-    const cur = winnerQuote.currency;
-    const amt = Number(winnerQuote.totalAmount).toLocaleString('en-IN', {
+    const cur = awardedCurrency;
+    const amt = Number(awardedAmount).toLocaleString('en-IN', {
       minimumFractionDigits: 2,
     });
     const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
-    // Confirmed shipping-line details of the awarded quote.
+    // Confirmed shipping-line details — from the awarded option, else the quote.
+    const sl = chosenOption ?? winnerQuote;
     const confirmed: string[] = [];
-    if (winnerQuote.shippingLine) confirmed.push(`  Shipping line/airline: ${winnerQuote.shippingLine}`);
-    if (winnerQuote.vesselName) confirmed.push(`  Vessel/flight:         ${winnerQuote.vesselName}`);
-    if (iso(winnerQuote.etd)) confirmed.push(`  ETD:                   ${iso(winnerQuote.etd)}`);
-    if (iso(winnerQuote.eta)) confirmed.push(`  ETA:                   ${iso(winnerQuote.eta)}`);
+    if (sl.shippingLine) confirmed.push(`  Shipping line/airline: ${sl.shippingLine}`);
+    if (sl.vesselName) confirmed.push(`  Vessel/flight:         ${sl.vesselName}`);
+    if (iso(sl.etd)) confirmed.push(`  ETD:                   ${iso(sl.etd)}`);
+    if (iso(sl.eta)) confirmed.push(`  ETA:                   ${iso(sl.eta)}`);
 
     for (const ev of submittedVendors) {
       if (ev.id === winner.id) {
@@ -489,13 +508,38 @@ export class EnquiriesService {
         enquiryVendors: {
           include: {
             vendor: true,
-            quotation: { include: { lines: { include: { chargeType: true } } } },
+            quotation: {
+              include: {
+                lines: { include: { chargeType: true } },
+                options: { include: { lines: { include: { chargeType: true } } }, orderBy: { sortOrder: 'asc' } },
+              },
+            },
           },
           orderBy: { invitedAt: 'asc' },
         },
       },
     });
     if (!enquiry) throw new NotFoundException(`Enquiry ${id} not found`);
+
+    // Comparison is shown in INR; USD lines convert at the configured rate.
+    const RATE = Number(process.env.USD_INR_RATE ?? 83);
+    const toInr = (amt: number, cur?: string | null) =>
+      (cur ?? 'INR').toUpperCase() === 'USD' ? amt * RATE : amt;
+    type CmpLine = { chargeTypeId: string | null; description: string | null; currency: string; amount: unknown; chargeType: { name: string; category: ChargeCategory } | null };
+    type QuoteT = NonNullable<(typeof enquiry.enquiryVendors)[number]['quotation']>;
+    type OptionT = QuoteT['options'][number];
+    // For a submitted quote, pick the display option (lowest-INR option) + its lines.
+    const pick = (q: QuoteT | null) => {
+      if (!q) return { lines: [] as CmpLine[], chosen: null as OptionT | null };
+      if (q.options.length) {
+        const priced = q.options.filter((o) => Number(o.totalInr) > 0);
+        const chosen = (priced.length ? priced : q.options).reduce((a, b) =>
+          Number(a.totalInr) <= Number(b.totalInr) ? a : b,
+        );
+        return { lines: chosen.lines as CmpLine[], chosen };
+      }
+      return { lines: q.lines as CmpLine[], chosen: null };
+    };
 
     // A column key groups by charge type; custom (chargeType-less) lines
     // fall back to a description-based synthetic key so they still line up.
@@ -522,7 +566,8 @@ export class EnquiriesService {
     for (const ev of enquiry.enquiryVendors) {
       const q = ev.quotation;
       if (!q || q.status !== QuoteStatus.SUBMITTED) continue;
-      for (const line of q.lines) {
+      for (const line of pick(q).lines) {
+        if (!line.chargeTypeId && !(line.description ?? '').trim()) continue; // skip blank KPI lines
         const k = colKey(line);
         if (!columns.has(k))
           columns.set(k, {
@@ -536,39 +581,59 @@ export class EnquiriesService {
     const vendors = enquiry.enquiryVendors.map((ev) => {
       const q = ev.quotation;
       const submitted = !!q && q.status === QuoteStatus.SUBMITTED;
+      const { lines: displayLines, chosen } = pick(q);
       const lines: Record<string, number> = {};
       const categoryTotals: Partial<Record<ChargeCategory, number>> = {};
       if (submitted) {
-        for (const line of q!.lines) {
+        for (const line of displayLines) {
+          if (!line.chargeTypeId && !(line.description ?? '').trim()) continue;
           const k = colKey(line);
-          const amt = Number(line.amount);
+          const amt = toInr(Number(line.amount), line.currency);
           lines[k] = (lines[k] ?? 0) + amt;
           const cat = line.chargeType?.category ?? ChargeCategory.OTHER;
           categoryTotals[cat] = (categoryTotals[cat] ?? 0) + amt;
         }
       }
+      // Schedule fields come from the chosen option (option-flow) or the quote (legacy).
+      const sched = chosen ?? q;
+      const total = submitted
+        ? chosen
+          ? Number(chosen.totalInr)
+          : Number(q!.totalAmount)
+        : null;
       return {
         vendorId: ev.vendorId,
         enquiryVendorId: ev.id,
         name: ev.vendor.name,
         submitted,
         status: q?.status ?? QuoteStatus.PENDING,
-        currency: q?.currency ?? 'INR',
-        transitTimeDays: q?.transitTimeDays ?? null,
+        currency: 'INR',
+        transitTimeDays: sched?.transitTimeDays ?? null,
         validUntil: q?.validUntil ?? null,
         quotationId: q?.id ?? null,
         lines,
-        total: submitted ? Number(q!.totalAmount) : null,
+        total,
         categoryTotals: submitted ? categoryTotals : undefined,
-        rateType: q?.rateType ?? undefined,
-        freeDetentionOriginDays: q?.freeDetentionOriginDays ?? undefined,
-        freeDetentionDestDays: q?.freeDetentionDestDays ?? undefined,
-        freeDemurrageDestDays: q?.freeDemurrageDestDays ?? undefined,
-        etd: q?.etd ?? undefined,
-        eta: q?.eta ?? undefined,
-        transshipments: q?.transshipments ?? undefined,
-        shippingLine: q?.shippingLine ?? undefined,
-        vesselName: q?.vesselName ?? undefined,
+        rateType: sched?.rateType ?? undefined,
+        freeDetentionOriginDays: sched?.freeDetentionOriginDays ?? undefined,
+        freeDetentionDestDays: sched?.freeDetentionDestDays ?? undefined,
+        freeDemurrageDestDays: sched?.freeDemurrageDestDays ?? undefined,
+        etd: sched?.etd ?? undefined,
+        eta: sched?.eta ?? undefined,
+        transshipments: sched?.transshipments ?? undefined,
+        shippingLine: sched?.shippingLine ?? undefined,
+        vesselName: sched?.vesselName ?? undefined,
+        // All options (for the award dropdown — pick which one to award).
+        options: (q?.options ?? []).map((o) => ({
+          optionId: o.id,
+          label: o.label,
+          shippingLine: o.shippingLine,
+          vesselName: o.vesselName,
+          etd: o.etd,
+          eta: o.eta,
+          transitTimeDays: o.transitTimeDays,
+          totalInr: Number(o.totalInr),
+        })),
       };
     });
 

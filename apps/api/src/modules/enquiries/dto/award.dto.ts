@@ -4,6 +4,11 @@ export class AwardDto {
   @IsUUID()
   quotationId!: string;
 
+  // Which shipping-line option of that quote to award (multi-option quotes).
+  @IsOptional()
+  @IsUUID()
+  optionId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(1000)

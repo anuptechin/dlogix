@@ -52,6 +52,32 @@ interface QuoteExtra {
   vesselName?: string;
 }
 
+// ── Multi-option (Export Sea/Air) ──
+interface OptRow {
+  key: number;
+  chargeTypeId?: string;
+  description: string;
+  unit?: string;
+  currency: string; // 'USD' | 'INR'
+  qty: number;
+  rate: number;
+  fixed: boolean; // fixed charge line (locked name/currency) vs free KPI line
+}
+interface OptState {
+  key: number;
+  shippingLine?: string;
+  vesselName?: string;
+  etd?: dayjs.Dayjs | null;
+  eta?: dayjs.Dayjs | null;
+  transitTimeDays?: number;
+  transshipments?: number;
+  rateType?: 'SPOT' | 'CONTRACT';
+  freeDetentionOriginDays?: number;
+  freeDetentionDestDays?: number;
+  freeDemurrageDestDays?: number;
+  rows: OptRow[];
+}
+
 const n = (v: unknown): number => {
   const x = Number(v);
   return Number.isFinite(x) ? x : 0;
@@ -123,37 +149,68 @@ export default function QuotePage() {
   const [validUntil, setValidUntil] = useState<dayjs.Dayjs | null>(null);
   const [remarks, setRemarks] = useState('');
   const [extra, setExtra] = useState<QuoteExtra>({});
+  const [options, setOptions] = useState<OptState[]>([]);
   const [ready, setReady] = useState(false);
   const patchExtra = (p: Partial<QuoteExtra>) => setExtra((e) => ({ ...e, ...p }));
+  const useOpt = Boolean(data?.useOptions);
 
   useEffect(() => {
     if (data && !ready) {
       const q = data.quotation;
-      setCurrency(q.currency || 'INR');
-      setTransit(q.transitTimeDays ?? undefined);
       setValidUntil(q.validUntil ? dayjs(q.validUntil) : null);
       setRemarks(q.remarks ?? '');
-      setExtra({
-        rateType: q.rateType ?? undefined,
-        freeDetentionOriginDays: q.freeDetentionOriginDays ?? undefined,
-        freeDetentionDestDays: q.freeDetentionDestDays ?? undefined,
-        freeDemurrageDestDays: q.freeDemurrageDestDays ?? undefined,
-        etd: q.etd ? dayjs(q.etd) : null,
-        eta: q.eta ? dayjs(q.eta) : null,
-        transshipments: q.transshipments ?? undefined,
-        shippingLine: q.shippingLine ?? undefined,
-        vesselName: q.vesselName ?? undefined,
-      });
-      setRows(
-        q.lines.map((l) => ({
+      if (data.useOptions) {
+        const toRow = (l: (typeof q.lines)[number]): OptRow => ({
           key: nextKey.current++,
           chargeTypeId: l.chargeTypeId ?? undefined,
           description: l.description ?? '',
           unit: l.unit ?? undefined,
+          currency: (l.currency ?? 'INR').toUpperCase(),
           qty: n(l.qty),
           rate: n(l.rate),
-        })),
-      );
+          fixed: !!l.chargeTypeId,
+        });
+        setOptions(
+          (q.options ?? []).map((o) => ({
+            key: nextKey.current++,
+            shippingLine: o.shippingLine ?? undefined,
+            vesselName: o.vesselName ?? undefined,
+            etd: o.etd ? dayjs(o.etd) : null,
+            eta: o.eta ? dayjs(o.eta) : null,
+            transitTimeDays: o.transitTimeDays ?? undefined,
+            transshipments: o.transshipments ?? undefined,
+            rateType: o.rateType ?? undefined,
+            freeDetentionOriginDays: o.freeDetentionOriginDays ?? undefined,
+            freeDetentionDestDays: o.freeDetentionDestDays ?? undefined,
+            freeDemurrageDestDays: o.freeDemurrageDestDays ?? undefined,
+            rows: o.lines.map(toRow),
+          })),
+        );
+      } else {
+        setCurrency(q.currency || 'INR');
+        setTransit(q.transitTimeDays ?? undefined);
+        setExtra({
+          rateType: q.rateType ?? undefined,
+          freeDetentionOriginDays: q.freeDetentionOriginDays ?? undefined,
+          freeDetentionDestDays: q.freeDetentionDestDays ?? undefined,
+          freeDemurrageDestDays: q.freeDemurrageDestDays ?? undefined,
+          etd: q.etd ? dayjs(q.etd) : null,
+          eta: q.eta ? dayjs(q.eta) : null,
+          transshipments: q.transshipments ?? undefined,
+          shippingLine: q.shippingLine ?? undefined,
+          vesselName: q.vesselName ?? undefined,
+        });
+        setRows(
+          q.lines.map((l) => ({
+            key: nextKey.current++,
+            chargeTypeId: l.chargeTypeId ?? undefined,
+            description: l.description ?? '',
+            unit: l.unit ?? undefined,
+            qty: n(l.qty),
+            rate: n(l.rate),
+          })),
+        );
+      }
       setReady(true);
     }
   }, [data, ready]);
@@ -163,28 +220,54 @@ export default function QuotePage() {
     [rows],
   );
 
-  const payload = () => ({
-    currency,
-    transitTimeDays: transit,
-    validUntil: validUntil ? validUntil.toISOString() : undefined,
-    remarks: remarks || undefined,
-    lines: rows.map((r) => ({
-      chargeTypeId: r.chargeTypeId,
-      description: r.description || undefined,
-      unit: r.unit || undefined,
-      qty: n(r.qty),
-      rate: n(r.rate),
-    })),
-    rateType: extra.rateType,
-    freeDetentionOriginDays: extra.freeDetentionOriginDays,
-    freeDetentionDestDays: extra.freeDetentionDestDays,
-    freeDemurrageDestDays: extra.freeDemurrageDestDays,
-    etd: extra.etd ? extra.etd.toISOString() : undefined,
-    eta: extra.eta ? extra.eta.toISOString() : undefined,
-    transshipments: extra.transshipments,
-    shippingLine: extra.shippingLine || undefined,
-    vesselName: extra.vesselName || undefined,
-  });
+  const payload = () =>
+    useOpt
+      ? {
+          validUntil: validUntil ? validUntil.toISOString() : undefined,
+          remarks: remarks || undefined,
+          options: options.map((o) => ({
+            shippingLine: o.shippingLine || undefined,
+            vesselName: o.vesselName || undefined,
+            etd: o.etd ? o.etd.toISOString() : undefined,
+            eta: o.eta ? o.eta.toISOString() : undefined,
+            transitTimeDays: o.transitTimeDays,
+            transshipments: o.transshipments,
+            rateType: o.rateType,
+            freeDetentionOriginDays: o.freeDetentionOriginDays,
+            freeDetentionDestDays: o.freeDetentionDestDays,
+            freeDemurrageDestDays: o.freeDemurrageDestDays,
+            lines: o.rows.map((r) => ({
+              chargeTypeId: r.chargeTypeId,
+              description: r.description || undefined,
+              unit: r.unit || undefined,
+              currency: r.currency,
+              qty: n(r.qty),
+              rate: n(r.rate),
+            })),
+          })),
+        }
+      : {
+          currency,
+          transitTimeDays: transit,
+          validUntil: validUntil ? validUntil.toISOString() : undefined,
+          remarks: remarks || undefined,
+          lines: rows.map((r) => ({
+            chargeTypeId: r.chargeTypeId,
+            description: r.description || undefined,
+            unit: r.unit || undefined,
+            qty: n(r.qty),
+            rate: n(r.rate),
+          })),
+          rateType: extra.rateType,
+          freeDetentionOriginDays: extra.freeDetentionOriginDays,
+          freeDetentionDestDays: extra.freeDetentionDestDays,
+          freeDemurrageDestDays: extra.freeDemurrageDestDays,
+          etd: extra.etd ? extra.etd.toISOString() : undefined,
+          eta: extra.eta ? extra.eta.toISOString() : undefined,
+          transshipments: extra.transshipments,
+          shippingLine: extra.shippingLine || undefined,
+          vesselName: extra.vesselName || undefined,
+        };
 
   const saveMut = useMutation({
     mutationFn: () => saveQuotation(token, payload()),
@@ -263,6 +346,59 @@ export default function QuotePage() {
     setRows((r) => r.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   const removeRow = (key: number) =>
     setRows((r) => r.filter((row) => row.key !== key));
+
+  // ── option handlers (multi-option flow) ──
+  const patchOption = (key: number, patch: Partial<OptState>) =>
+    setOptions((os) => os.map((o) => (o.key === key ? { ...o, ...patch } : o)));
+  const patchOptRow = (optKey: number, rowKey: number, patch: Partial<OptRow>) =>
+    setOptions((os) =>
+      os.map((o) =>
+        o.key === optKey
+          ? { ...o, rows: o.rows.map((r) => (r.key === rowKey ? { ...r, ...patch } : r)) }
+          : o,
+      ),
+    );
+  const addOption = () =>
+    setOptions((prev) => {
+      const tmpl = prev[0]?.rows ?? [];
+      const rows: OptRow[] = tmpl.map((r) => ({
+        ...r,
+        key: nextKey.current++,
+        rate: 0,
+        description: r.fixed ? r.description : '',
+      }));
+      return [...prev, { key: nextKey.current++, etd: null, eta: null, rows }];
+    });
+  const removeOption = (key: number) =>
+    setOptions((os) => (os.length > 1 ? os.filter((o) => o.key !== key) : os));
+
+  const optionsHaveValue = options.some((o) => o.rows.some((r) => n(r.rate) > 0));
+
+  if (useOpt) {
+    return (
+      <OptionsView
+        data={data}
+        options={options}
+        validUntil={validUntil}
+        remarks={remarks}
+        submitted={submitted}
+        daysLeft={daysLeft}
+        deadline={deadline}
+        saving={saveMut.isPending}
+        submitting={submitMut.isPending}
+        canSubmit={optionsHaveValue}
+        isSea={data.enquiry.mode === 'LCL' || data.enquiry.mode === 'FCL'}
+        onValidUntil={setValidUntil}
+        onRemarks={setRemarks}
+        onPatchOption={patchOption}
+        onPatchRow={patchOptRow}
+        onAddOption={addOption}
+        onRemoveOption={removeOption}
+        onSave={() => saveMut.mutate()}
+        onSubmit={() => submitMut.mutate()}
+      />
+    );
+  }
 
   return (
     <QuoteView
@@ -669,5 +805,295 @@ function modeLabel(mode: string) {
     { AIR: 'Air Freight', LCL: 'Sea LCL', FCL: 'Sea FCL', COURIER: 'Courier' }[
       mode
     ] ?? mode
+  );
+}
+
+/* ---- multi-option view (Export Sea/Air): several shipping-line options ---- */
+function optionTotals(rows: OptRow[]): Record<string, number> {
+  const m: Record<string, number> = {};
+  for (const r of rows) {
+    const a = n(r.qty) * n(r.rate);
+    if (a > 0) m[r.currency] = (m[r.currency] ?? 0) + a;
+  }
+  return m;
+}
+
+function OptionsView(props: {
+  data: QuotePortalSummary;
+  options: OptState[];
+  validUntil: dayjs.Dayjs | null;
+  remarks: string;
+  submitted: boolean;
+  daysLeft: number | null;
+  deadline: dayjs.Dayjs | null;
+  saving: boolean;
+  submitting: boolean;
+  canSubmit: boolean;
+  isSea: boolean;
+  onValidUntil: (v: dayjs.Dayjs | null) => void;
+  onRemarks: (v: string) => void;
+  onPatchOption: (key: number, patch: Partial<OptState>) => void;
+  onPatchRow: (optKey: number, rowKey: number, patch: Partial<OptRow>) => void;
+  onAddOption: () => void;
+  onRemoveOption: (key: number) => void;
+  onSave: () => void;
+  onSubmit: () => void;
+}) {
+  const { data, options, submitted, isSea } = props;
+  const e = data.enquiry;
+
+  return (
+    <div className="rfq">
+      <div className="rfq__bar">
+        <div className="rfq__bar-left">
+          <DlogixLogo tone="dark" size={28} />
+          <span className="rfq__bar-label">Request for Quotation</span>
+        </div>
+        <span className="rfq__bar-ref">
+          Ref <b>{e.enquiryNo}</b>
+        </span>
+      </div>
+
+      <div className="rfq__shell">
+        <div className="rfq__ticket">
+          <div className="rfq__ticket-eyebrow">
+            {e.direction} · {modeLabel(e.mode)}
+          </div>
+          <div className="rfq__route">
+            <div className="rfq__place">
+              <div className="code">{e.origin?.code ?? '—'}</div>
+              <div className="name">{e.origin?.name ?? 'Origin'}</div>
+            </div>
+            <div className="rfq__path">
+              <span className="rail" />
+              <span className="glyph"><ModeGlyph mode={e.mode} /></span>
+              <span className="rail" />
+            </div>
+            <div className="rfq__place rfq__place--to">
+              <div className="code">{e.destination?.code ?? '—'}</div>
+              <div className="name">{e.destination?.name ?? 'Destination'}</div>
+            </div>
+          </div>
+          <div className="rfq__meta">
+            {e.chargeableWeight != null && (
+              <span className="rfq__chip"><span className="k">Chargeable</span><span className="v">{n(e.chargeableWeight)} kg</span></span>
+            )}
+            {e.cargoDesc && (
+              <span className="rfq__chip"><span className="k">Cargo</span><span className="v">{e.cargoDesc}</span></span>
+            )}
+            {props.deadline && (
+              <span className="rfq__chip rfq__chip--deadline">
+                <span className="k">Submit by</span>
+                <span className="v">
+                  {props.deadline.format('DD MMM YYYY')}
+                  {props.daysLeft != null && props.daysLeft >= 0 && ` · ${props.daysLeft}d left`}
+                </span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="rfq__hello">
+          <h1>Hello, {data.vendor.contactPerson ?? data.vendor.name}</h1>
+          <p>
+            Quote one or more <b>shipping line options</b> for this shipment. Each
+            option has its own schedule and charges — add as many as you like and
+            we’ll pick the best. Ocean freight is in USD; other charges in ₹.
+          </p>
+        </div>
+
+        {submitted && (
+          <div className="rfq__card" style={{ paddingBottom: 0 }}>
+            <div className="rfq__submitted">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+              <span>
+                Quotation submitted
+                {data.quotation.submittedAt && ` on ${dayjs(data.quotation.submittedAt).format('DD MMM YYYY, HH:mm')}`}
+                . You can revise and re-submit any time before the deadline.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {options.map((o, idx) => {
+          const totals = optionTotals(o.rows);
+          const totalStr =
+            Object.entries(totals).map(([c, v]) => money(v, c)).join('  ·  ') || money(0, 'INR');
+          return (
+            <div className="rfq__card" key={o.key}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="rfq__card-title">
+                  {isSea ? 'Shipping line' : 'Air line'} option {idx + 1}
+                </h2>
+                {options.length > 1 && (
+                  <Button type="text" icon={<DeleteOutlined />} onClick={() => props.onRemoveOption(o.key)}>
+                    Remove
+                  </Button>
+                )}
+              </div>
+
+              <div className="rfq__fields" style={{ marginTop: 10 }}>
+                <div className="rfq__field">
+                  <label>{isSea ? 'Shipping line' : 'Airline'}</label>
+                  <Input
+                    value={o.shippingLine}
+                    onChange={(ev) => props.onPatchOption(o.key, { shippingLine: ev.target.value })}
+                    placeholder={isSea ? 'e.g. Maersk' : 'e.g. Emirates'}
+                  />
+                </div>
+                <div className="rfq__field">
+                  <label>{isSea ? 'Vessel name' : 'Flight'}</label>
+                  <Input
+                    value={o.vesselName}
+                    onChange={(ev) => props.onPatchOption(o.key, { vesselName: ev.target.value })}
+                  />
+                </div>
+                <div className="rfq__field">
+                  <label>ETD</label>
+                  <DatePicker value={o.etd ?? null} onChange={(v) => props.onPatchOption(o.key, { etd: v })} style={{ width: '100%' }} />
+                </div>
+                <div className="rfq__field">
+                  <label>ETA</label>
+                  <DatePicker value={o.eta ?? null} onChange={(v) => props.onPatchOption(o.key, { eta: v })} style={{ width: '100%' }} />
+                </div>
+                <div className="rfq__field">
+                  <label>Transit time (days)</label>
+                  <InputNumber min={0} value={o.transitTimeDays} onChange={(v) => props.onPatchOption(o.key, { transitTimeDays: v ?? undefined })} style={{ width: '100%' }} />
+                </div>
+                <div className="rfq__field">
+                  <label>Rate type</label>
+                  <Select
+                    allowClear
+                    value={o.rateType}
+                    onChange={(v) => props.onPatchOption(o.key, { rateType: v })}
+                    style={{ width: '100%' }}
+                    placeholder="Spot / Contract"
+                    options={[{ label: 'Spot quote', value: 'SPOT' }, { label: 'Contract rate', value: 'CONTRACT' }]}
+                  />
+                </div>
+                {isSea && (
+                  <>
+                    <div className="rfq__field">
+                      <label>Transshipments</label>
+                      <InputNumber min={0} value={o.transshipments} onChange={(v) => props.onPatchOption(o.key, { transshipments: v ?? undefined })} style={{ width: '100%' }} />
+                    </div>
+                    <div className="rfq__field">
+                      <label>Free detention — origin (days)</label>
+                      <InputNumber min={0} value={o.freeDetentionOriginDays} onChange={(v) => props.onPatchOption(o.key, { freeDetentionOriginDays: v ?? undefined })} style={{ width: '100%' }} />
+                    </div>
+                    <div className="rfq__field">
+                      <label>Free detention — destination (days)</label>
+                      <InputNumber min={0} value={o.freeDetentionDestDays} onChange={(v) => props.onPatchOption(o.key, { freeDetentionDestDays: v ?? undefined })} style={{ width: '100%' }} />
+                    </div>
+                    <div className="rfq__field">
+                      <label>Free demurrage — destination (days)</label>
+                      <InputNumber min={0} value={o.freeDemurrageDestDays} onChange={(v) => props.onPatchOption(o.key, { freeDemurrageDestDays: v ?? undefined })} style={{ width: '100%' }} />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="rfq__lines-head" style={{ marginTop: 14 }}>
+                <span>Charge</span>
+                <span className="r">Qty</span>
+                <span className="r">Rate</span>
+                <span className="r">Amount</span>
+                <span />
+              </div>
+              {o.rows.map((row) => {
+                const amount = n(row.qty) * n(row.rate);
+                const sym = SYMBOL[row.currency] ?? row.currency + ' ';
+                return (
+                  <div className="rfq__line" key={row.key}>
+                    <div className="rfq__line-desc">
+                      {row.fixed ? (
+                        <span style={{ fontWeight: 600 }}>
+                          {row.description}
+                          <span className="u" style={{ marginLeft: 6 }}>{row.currency}</span>
+                        </span>
+                      ) : (
+                        <Input
+                          variant="borderless"
+                          placeholder="Additional charge / KPI name"
+                          value={row.description}
+                          onChange={(ev) => props.onPatchRow(o.key, row.key, { description: ev.target.value })}
+                          style={{ padding: 0, fontWeight: 500 }}
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <span className="rfq__mobile-label">Qty</span>
+                      <InputNumber min={0} value={row.qty} onChange={(v) => props.onPatchRow(o.key, row.key, { qty: n(v) })} style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <span className="rfq__mobile-label">Rate</span>
+                      <InputNumber min={0} value={row.rate} onChange={(v) => props.onPatchRow(o.key, row.key, { rate: n(v) })} style={{ width: '100%' }} prefix={sym} />
+                    </div>
+                    <div className="rfq__line-amt">
+                      <span className="rfq__mobile-label">Amount</span>
+                      {money(amount, row.currency)}
+                    </div>
+                    <div className="rfq__line-remove" />
+                  </div>
+                );
+              })}
+              <div style={{ textAlign: 'right', marginTop: 10, fontWeight: 600 }}>
+                Option total: {totalStr}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="rfq__add">
+          <Button icon={<PlusOutlined />} onClick={props.onAddOption}>
+            Add another {isSea ? 'shipping line' : 'air line'} option
+          </Button>
+        </div>
+
+        <div className="rfq__card">
+          <h2 className="rfq__card-title">Quote details</h2>
+          <div className="rfq__fields" style={{ marginTop: 12 }}>
+            <div className="rfq__field">
+              <label>Rates valid until</label>
+              <DatePicker value={props.validUntil} onChange={props.onValidUntil} style={{ width: '100%' }} />
+            </div>
+            <div className="rfq__field rfq__field--full">
+              <label>Remarks (optional)</label>
+              <Input.TextArea
+                rows={2}
+                value={props.remarks}
+                onChange={(ev) => props.onRemarks(ev.target.value)}
+                placeholder="Anything Dlogix should know — inclusions, exclusions, notes."
+              />
+            </div>
+          </div>
+        </div>
+
+        <p className="rfq__foot">Dlogix · Your Global Trade Partner · Confidential</p>
+      </div>
+
+      <div className="rfq__totalbar">
+        <div className="rfq__totalbar-inner">
+          <div className="rfq__total">
+            <span className="k">Options</span>
+            <span className="v">{options.length}</span>
+          </div>
+          <div className="rfq__actions">
+            <Button size="large" onClick={props.onSave} loading={props.saving}>
+              Save draft
+            </Button>
+            <Button
+              size="large"
+              type="primary"
+              onClick={props.onSubmit}
+              loading={props.submitting}
+              disabled={!props.canSubmit}
+            >
+              {submitted ? 'Update quotation' : 'Submit quotation'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

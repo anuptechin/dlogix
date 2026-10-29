@@ -276,23 +276,54 @@ model Quotation {
 
   enquiryVendor EnquiryVendor   @relation(fields: [enquiryVendorId], references: [id], onDelete: Cascade)
   lines         QuotationLine[]
+  options       QuotationOption[]
   awards        Award[]
 
   @@map("quotations")
 }
 
-model QuotationLine {
-  id           String  @id @default(uuid())
-  quotationId  String  @map("quotation_id")
-  chargeTypeId String? @map("charge_type_id")
-  description  String?
-  unit         String?
-  qty          Decimal @default(1) @db.Decimal(12, 3)
-  rate         Decimal @default(0) @db.Decimal(14, 4)
-  amount       Decimal @default(0) @db.Decimal(14, 2)
+// A vendor can offer several shipping/air-line options in one quote. Each option
+// carries its own schedule + charge lines; the backend awards exactly one.
+model QuotationOption {
+  id          String  @id @default(uuid())
+  quotationId String  @map("quotation_id")
+  label       String?
+  shippingLine String?  @map("shipping_line")
+  vesselName   String?  @map("vessel_name")
+  etd            DateTime? @db.Date
+  eta            DateTime? @db.Date
+  transitTimeDays Int?    @map("transit_time_days")
+  transshipments  Int?
+  rateType        RateType? @map("rate_type")
+  freeDetentionOriginDays Int? @map("free_detention_origin_days")
+  freeDetentionDestDays   Int? @map("free_detention_dest_days")
+  freeDemurrageDestDays   Int? @map("free_demurrage_dest_days")
+  totalInr    Decimal @default(0) @map("total_inr") @db.Decimal(14, 2) // all lines converted to INR
+  sortOrder   Int     @default(0) @map("sort_order")
 
-  quotation  Quotation   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  chargeType ChargeType? @relation(fields: [chargeTypeId], references: [id])
+  quotation Quotation       @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  lines     QuotationLine[]
+  awards    Award[]
+
+  @@index([quotationId])
+  @@map("quotation_options")
+}
+
+model QuotationLine {
+  id                String  @id @default(uuid())
+  quotationId       String  @map("quotation_id")
+  quotationOptionId String? @map("quotation_option_id")
+  chargeTypeId      String? @map("charge_type_id")
+  description       String?
+  unit              String?
+  currency          String  @default("INR")
+  qty               Decimal @default(1) @db.Decimal(12, 3)
+  rate              Decimal @default(0) @db.Decimal(14, 4)
+  amount            Decimal @default(0) @db.Decimal(14, 2)
+
+  quotation  Quotation        @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  option     QuotationOption? @relation(fields: [quotationOptionId], references: [id], onDelete: Cascade)
+  chargeType ChargeType?      @relation(fields: [chargeTypeId], references: [id])
 
   @@map("quotation_lines")
 }
@@ -301,6 +332,7 @@ model Award {
   id            String   @id @default(uuid())
   enquiryId     String   @unique @map("enquiry_id")
   quotationId   String   @map("quotation_id")
+  quotationOptionId String? @map("quotation_option_id")
   awardedById   String   @map("awarded_by")
   awardedAmount Decimal  @map("awarded_amount") @db.Decimal(14, 2)
   reason        String?
@@ -309,6 +341,7 @@ model Award {
 
   enquiry   Enquiry   @relation(fields: [enquiryId], references: [id])
   quotation Quotation @relation(fields: [quotationId], references: [id])
+  option    QuotationOption? @relation(fields: [quotationOptionId], references: [id])
   awardedBy User      @relation(fields: [awardedById], references: [id])
 
   @@map("awards")

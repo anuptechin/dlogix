@@ -88,7 +88,7 @@ export class EnquiriesController {
 
   @Post(':id/award')
   award(@Param('id') id: string, @Body() dto: AwardDto) {
-    return this.enquiries.award(id, dto.quotationId, dto.reason, dto.internalEmails);
+    return this.enquiries.award(id, dto.quotationId, dto.reason, dto.internalEmails, dto.optionId);
   }
 
   // ─── Smart Decision Panel ──────────────────────────────────
