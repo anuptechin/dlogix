@@ -623,6 +623,7 @@ export interface Comparison {
     origin?: { code?: string | null; name: string } | null;
     destination?: { code?: string | null; name: string } | null;
     awardedQuotationId?: string | null;
+    awardedReason?: string | null;
   };
   chargeTypes: ComparisonColumn[];
   vendors: ComparisonVendor[];
@@ -638,10 +639,12 @@ export async function awardEnquiry(
   id: string,
   quotationId: string,
   reason?: string,
+  internalEmails?: string[],
 ): Promise<EnquiryDetail> {
   const { data } = await api.post<EnquiryDetail>(`/enquiries/${id}/award`, {
     quotationId,
     reason,
+    internalEmails,
   });
   return data;
 }

@@ -304,6 +304,7 @@ model Award {
   awardedById   String   @map("awarded_by")
   awardedAmount Decimal  @map("awarded_amount") @db.Decimal(14, 2)
   reason        String?
+  internalEmails String[] @default([]) @map("internal_emails") // D'Decor recipients cc'd on the award
   awardedAt     DateTime @default(now()) @map("awarded_at")
 
   enquiry   Enquiry   @relation(fields: [enquiryId], references: [id])

@@ -309,7 +309,7 @@ export class EnquiriesService {
     });
   }
 
-  async award(id: string, quotationId: string, reason?: string) {
+  async award(id: string, quotationId: string, reason?: string, internalEmails?: string[]) {
     const enquiry = await this.prisma.enquiry.findUnique({
       where: { id },
       include: {
@@ -349,6 +349,7 @@ export class EnquiriesService {
           awardedById: user.id,
           awardedAmount: winnerQuote.totalAmount,
           reason: reason ?? null,
+          internalEmails: internalEmails ?? [],
         },
       });
       // Feed the historical rate database for this lane.
@@ -405,6 +406,14 @@ export class EnquiriesService {
     const amt = Number(winnerQuote.totalAmount).toLocaleString('en-IN', {
       minimumFractionDigits: 2,
     });
+    const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
+    // Confirmed shipping-line details of the awarded quote.
+    const confirmed: string[] = [];
+    if (winnerQuote.shippingLine) confirmed.push(`  Shipping line/airline: ${winnerQuote.shippingLine}`);
+    if (winnerQuote.vesselName) confirmed.push(`  Vessel/flight:         ${winnerQuote.vesselName}`);
+    if (iso(winnerQuote.etd)) confirmed.push(`  ETD:                   ${iso(winnerQuote.etd)}`);
+    if (iso(winnerQuote.eta)) confirmed.push(`  ETA:                   ${iso(winnerQuote.eta)}`);
+
     for (const ev of submittedVendors) {
       if (ev.id === winner.id) {
         await this.email.send({
@@ -416,6 +425,7 @@ export class EnquiriesService {
             '',
             `We are pleased to inform you that your quotation for enquiry ${enquiry.enquiryNo} has been accepted.`,
             `  Awarded amount: ${cur} ${amt}`,
+            ...(confirmed.length ? ['', 'Confirmed shipping details:', ...confirmed] : []),
             '',
             `Our team will be in touch with next steps. Thank you for your competitive offer.`,
             '',
@@ -442,6 +452,27 @@ export class EnquiriesService {
           ].join('\n'),
         });
       }
+    }
+
+    // Internal award notification to the D'Decor recipients chosen at award time.
+    if (internalEmails?.length) {
+      await this.email.send({
+        to: internalEmails[0],
+        cc: internalEmails.slice(1),
+        subject: `Enquiry awarded — ${enquiry.enquiryNo} (${winner.vendor.name})`,
+        text: [
+          `Enquiry ${enquiry.enquiryNo} has been awarded.`,
+          '',
+          `  Vendor:          ${winner.vendor.name}`,
+          `  Awarded amount:  ${cur} ${amt}`,
+          `  Route:           ${enquiry.origin?.name ?? '—'} -> ${enquiry.destination?.name ?? '—'}`,
+          `  Mode:            ${enquiry.direction} / ${enquiry.mode}`,
+          ...(confirmed.length ? ['', 'Confirmed shipping details:', ...confirmed] : []),
+          ...(reason ? ['', `Remarks: ${reason}`] : []),
+          '',
+          `— Dlogix`,
+        ].join('\n'),
+      });
     }
 
     return this.findOne(id);
@@ -571,6 +602,7 @@ export class EnquiriesService {
           ? { code: enquiry.destination.code, name: enquiry.destination.name }
           : null,
         awardedQuotationId: enquiry.award?.quotationId ?? null,
+        awardedReason: enquiry.award?.reason ?? null,
       },
       chargeTypes: [...columns.values()],
       vendors,

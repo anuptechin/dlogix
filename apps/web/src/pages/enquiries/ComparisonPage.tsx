@@ -7,6 +7,7 @@ import {
   Empty,
   Input,
   Modal,
+  Select,
   Space,
   Spin,
   Table,
@@ -57,6 +58,7 @@ export default function ComparisonPage() {
 
   const [awardTarget, setAwardTarget] = useState<ComparisonVendor | null>(null);
   const [reason, setReason] = useState('');
+  const [internalEmails, setInternalEmails] = useState<string[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['comparison', id],
@@ -66,11 +68,17 @@ export default function ComparisonPage() {
 
   const awardMut = useMutation({
     mutationFn: (v: ComparisonVendor) =>
-      awardEnquiry(id, v.quotationId!, reason || undefined),
+      awardEnquiry(
+        id,
+        v.quotationId!,
+        reason || undefined,
+        internalEmails.length ? internalEmails : undefined,
+      ),
     onSuccess: (_res, v) => {
       message.success(`Awarded to ${v.name} — feedback sent to all vendors.`);
       setAwardTarget(null);
       setReason('');
+      setInternalEmails([]);
       qc.invalidateQueries({ queryKey: ['comparison', id] });
       qc.invalidateQueries({ queryKey: ['enquiry', id] });
       qc.invalidateQueries({ queryKey: ['enquiries'] });
@@ -257,6 +265,11 @@ export default function ComparisonPage() {
                     </strong>
                     . Confirmation sent to the winner; the others received blind
                     feedback (no rate or vendor disclosed).
+                    {enquiry.awardedReason ? (
+                      <div style={{ marginTop: 6 }}>
+                        <strong>Remarks:</strong> {enquiry.awardedReason}
+                      </div>
+                    ) : null}
                   </>
                 }
               />
@@ -524,6 +537,18 @@ export default function ComparisonPage() {
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="e.g. Best total with acceptable transit time and valid rates."
+        />
+        <label style={{ display: 'block', margin: '14px 0 6px', color: '#64788c' }}>
+          Notify internal team (emails) — they receive the award confirmation
+        </label>
+        <Select
+          mode="tags"
+          open={false}
+          value={internalEmails}
+          onChange={setInternalEmails}
+          tokenSeparators={[',', ' ', ';']}
+          style={{ width: '100%' }}
+          placeholder="name@ddecor.com, name2@ddecor.com"
         />
       </Modal>
     </Space>
