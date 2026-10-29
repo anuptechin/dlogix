@@ -6,6 +6,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto, RequestOtpDto, VerifyOtpDto } from './dto/login.dto';
 import { getReqCtx } from '../../common/request-context';
@@ -28,6 +29,8 @@ type CookieRes = {
 
 @Controller('auth')
 @Public()
+// Brute-force protection: 10 auth requests / minute / IP (tighter than the global limit).
+@Throttle({ default: { ttl: 60000, limit: 10 } })
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 

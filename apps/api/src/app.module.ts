@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthGuard } from './common/auth.guard';
 import { AuditContextMiddleware } from './common/audit-context.middleware';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -26,6 +27,8 @@ import { AuditModule } from './modules/audit/audit.module';
       // In Docker/prod, env vars come from the container (file absent is fine).
       envFilePath: ['../../.env', '.env'],
     }),
+    // Lenient global rate limit; auth endpoints are tightened per-route (@Throttle).
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 150 }]),
     PrismaModule,
     EmailModule,
     HealthModule,
@@ -41,7 +44,10 @@ import { AuditModule } from './modules/audit/audit.module';
     DashboardModule,
     AuditModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

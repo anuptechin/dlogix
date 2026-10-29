@@ -1,13 +1,17 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const isProd = process.env.NODE_ENV === 'production';
+  // Behind the web nginx proxy → trust X-Forwarded-For so req.ip is the real
+  // client (rate limiting keys on it; otherwise everyone shares the proxy IP).
+  app.set('trust proxy', 1);
   const sessionSecret = process.env.SESSION_SECRET;
   if (isProd && (!sessionSecret || sessionSecret.length < 16)) {
     throw new Error('SESSION_SECRET must be set (>=16 chars) in production.');

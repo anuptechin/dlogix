@@ -99,6 +99,10 @@ export class AuthService {
 
   // ── Password login (kept as a fallback; UI uses OTP) ──
   async validate(email: string, password: string): Promise<PublicUser> {
+    // Password login is a dev fallback only — production uses email OTP.
+    if (process.env.NODE_ENV === 'production') {
+      throw new UnauthorizedException('Password login is disabled. Use the email code to sign in.');
+    }
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
