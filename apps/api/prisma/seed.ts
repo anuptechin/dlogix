@@ -74,6 +74,8 @@ async function main() {
     appliesToMode: ShipmentMode[];
   }[] = [
     { name: 'Freight', unit: 'per_kg', category: F, appliesToMode: [ShipmentMode.AIR] },
+    { name: 'Air Freight', unit: 'per_kg', category: F, appliesToMode: [ShipmentMode.AIR] },
+    { name: 'AWB Charges', unit: 'flat', category: L, appliesToMode: [ShipmentMode.AIR] },
     { name: 'Ocean Freight', unit: 'per_container', category: F, appliesToMode: [ShipmentMode.FCL] },
     { name: 'Ocean Freight (LCL)', unit: 'per_cbm', category: F, appliesToMode: [ShipmentMode.LCL] },
     { name: 'BAF', unit: 'flat', category: F, appliesToMode: SEA },
