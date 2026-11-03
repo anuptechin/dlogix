@@ -578,20 +578,25 @@ export interface ComparisonColumn {
   id: string;
   name: string;
   category?: ChargeCategory;
+  currency?: string; // currency this charge is quoted in (USD / INR)
 }
 
+// One column per shipping-line option (a vendor can appear in several columns).
 export interface ComparisonVendor {
+  key: string;
   vendorId: string;
   enquiryVendorId: string;
   name: string;
+  optionId?: string | null;
+  optionLabel?: string | null;
   submitted: boolean;
   status: QuoteStatus;
-  currency: string;
   transitTimeDays?: number | null;
   validUntil?: string | null;
   quotationId?: string | null;
-  lines: Record<string, number>;
-  total: number | null;
+  lines: Record<string, number>; // native amounts, by column id
+  totalByCurrency?: Record<string, number>; // native totals per currency
+  rankInr?: number | null; // INR-equivalent, for cheapest ranking only
   categoryTotals?: Partial<Record<ChargeCategory, number>>;
   rateType?: RateType | null;
   freeDetentionOriginDays?: number | null;
@@ -602,18 +607,6 @@ export interface ComparisonVendor {
   transshipments?: number | null;
   shippingLine?: string | null;
   vesselName?: string | null;
-  options?: ComparisonOption[];
-}
-
-export interface ComparisonOption {
-  optionId: string;
-  label?: string | null;
-  shippingLine?: string | null;
-  vesselName?: string | null;
-  etd?: string | null;
-  eta?: string | null;
-  transitTimeDays?: number | null;
-  totalInr: number;
 }
 
 export interface ComparisonHistoryRow {
@@ -635,6 +628,7 @@ export interface Comparison {
     origin?: { code?: string | null; name: string } | null;
     destination?: { code?: string | null; name: string } | null;
     awardedQuotationId?: string | null;
+    awardedOptionId?: string | null;
     awardedReason?: string | null;
   };
   chargeTypes: ComparisonColumn[];

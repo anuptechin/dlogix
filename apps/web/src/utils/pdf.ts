@@ -45,15 +45,29 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
   const vendors = cmp.vendors;
   const submitted = vendors.filter((v) => v.submitted);
   const awardedQid = e.awardedQuotationId ?? null;
+  const awardedOid = e.awardedOptionId ?? null;
+  const curByCol = new Map(cmp.chargeTypes.map((c) => [c.id, c.currency ?? 'INR']));
+  const colCur = (ctId: string) => curByCol.get(ctId) ?? 'INR';
+  type V = Comparison['vendors'][number];
+  const colHead = (v: V) => (v.optionLabel ? `${v.name} — ${v.optionLabel}` : v.name);
+  const totalStr = (v: V) => {
+    const m = v.totalByCurrency;
+    if (!m) return '—';
+    const parts = Object.entries(m).map(([c, amt]) => money(amt, c));
+    return parts.length ? parts.join('  ·  ') : money(0, 'INR');
+  };
   const lowest = submitted.length
-    ? Math.min(...submitted.map((v) => v.total ?? Infinity))
+    ? Math.min(...submitted.map((v) => v.rankInr ?? Infinity))
     : null;
-  const winnerId =
-    awardedQid ??
-    (lowest != null
-      ? submitted.find((v) => v.total === lowest)?.quotationId ?? null
-      : null);
-  const winner = vendors.find((v) => v.quotationId === winnerId);
+  const winner =
+    (awardedQid
+      ? vendors.find(
+          (v) => v.quotationId === awardedQid && (v.optionId ?? null) === awardedOid,
+        )
+      : lowest != null
+        ? submitted.find((v) => v.rankInr === lowest)
+        : undefined) ?? undefined;
+  const winnerKey = winner?.key ?? null;
 
   const winFill = awardedQid ? '#f3ecdd' : '#e6f2f1';
   const winHead = awardedQid ? '#9a6f1f' : '#0e5b5a';
@@ -67,17 +81,17 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
   const headerRow = [
     { text: 'Charge', style: 'thLeft' },
     ...vendors.map((v) => ({
-      text: v.name,
+      text: colHead(v),
       style: 'th',
-      ...(v.quotationId === winnerId ? { fillColor: winHead } : {}),
+      ...(v.key === winnerKey ? { fillColor: winHead } : {}),
     })),
   ];
   const bodyRows = cmp.chargeTypes.map((ct) => [
-    { text: ct.name, style: 'rowhead' },
+    { text: `${ct.name} (${colCur(ct.id)})`, style: 'rowhead' },
     ...vendors.map((v) =>
       cell(
-        v.submitted && v.lines[ct.id] != null ? money(v.lines[ct.id], v.currency) : '—',
-        v.quotationId === winnerId,
+        v.submitted && v.lines[ct.id] != null ? money(v.lines[ct.id], colCur(ct.id)) : '—',
+        v.key === winnerKey,
         'num',
       ),
     ),
@@ -85,11 +99,7 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
   const totalRow = [
     { text: 'Total', style: 'totalHead' },
     ...vendors.map((v) =>
-      cell(
-        v.submitted ? money(v.total, v.currency) : 'Awaiting',
-        v.quotationId === winnerId,
-        'total',
-      ),
+      cell(v.submitted ? totalStr(v) : 'Awaiting', v.key === winnerKey, 'total'),
     ),
   ];
   const transitRow = [
@@ -107,8 +117,8 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
 
   const note = winner
     ? awardedQid
-      ? `Awarded to ${winner.name} at ${money(winner.total, winner.currency)}.`
-      : `Lowest total: ${money(winner.total, winner.currency)} from ${winner.name}.`
+      ? `Awarded to ${colHead(winner)} at ${totalStr(winner)}.`
+      : `Lowest total: ${totalStr(winner)} from ${colHead(winner)}.`
     : 'No quotations submitted yet.';
 
   const docDefinition: any = {

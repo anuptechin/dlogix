@@ -12,6 +12,7 @@ import {
   QuoteStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { SaveQuotationDto } from './dto/save-quotation.dto';
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -65,7 +66,10 @@ function fixedSpec(mode: string): { name: string; currency: string }[] {
 
 @Injectable()
 export class PortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly email: EmailService,
+  ) {}
 
   async getSummary(token: string) {
     const ev = await this.resolve(token);
@@ -243,6 +247,7 @@ export class PortalService {
         'Add at least one rate before submitting your quotation.',
       );
     }
+    const wasSubmitted = quotation.status === QuoteStatus.SUBMITTED; // re-submit = update
 
     await this.prisma.$transaction(async (tx) => {
       await tx.quotation.update({
@@ -260,6 +265,30 @@ export class PortalService {
         });
       }
     });
+
+    // Notify the enquiry owner that a quote came in / was updated (best-effort).
+    try {
+      const creator = await this.prisma.user.findUnique({
+        where: { id: ev.enquiry.createdById },
+        select: { email: true },
+      });
+      if (creator?.email) {
+        const verb = wasSubmitted ? 'updated' : 'submitted';
+        await this.email.send({
+          to: creator.email,
+          subject: `Quote ${verb} — ${ev.enquiry.enquiryNo} (${ev.vendor.name})`,
+          text: [
+            `${ev.vendor.name} has ${verb} a quotation for enquiry ${ev.enquiry.enquiryNo}.`,
+            '',
+            `Open the comparison in Dlogix to review${wasSubmitted ? ' the updated rates' : ''}.`,
+            '',
+            `— Dlogix`,
+          ].join('\n'),
+        });
+      }
+    } catch {
+      /* notification failures never block the submit */
+    }
 
     return this.getSummary(token);
   }

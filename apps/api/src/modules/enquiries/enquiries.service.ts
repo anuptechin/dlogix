@@ -521,98 +521,82 @@ export class EnquiriesService {
     });
     if (!enquiry) throw new NotFoundException(`Enquiry ${id} not found`);
 
-    // Comparison is shown in INR; USD lines convert at the configured rate.
+    // Amounts are shown in the currency the vendor quoted (USD stays USD). An INR
+    // equivalent (USD_INR_RATE) is computed only to rank the cheapest option.
     const RATE = Number(process.env.USD_INR_RATE ?? 83);
-    const toInr = (amt: number, cur?: string | null) =>
-      (cur ?? 'INR').toUpperCase() === 'USD' ? amt * RATE : amt;
+    const toInr = (amt: number, cur: string) => (cur === 'USD' ? amt * RATE : amt);
+    const r2 = (nn: number) => Math.round((nn + Number.EPSILON) * 100) / 100;
     type CmpLine = { chargeTypeId: string | null; description: string | null; currency: string; amount: unknown; chargeType: { name: string; category: ChargeCategory } | null };
     type QuoteT = NonNullable<(typeof enquiry.enquiryVendors)[number]['quotation']>;
     type OptionT = QuoteT['options'][number];
-    // For a submitted quote, pick the display option (lowest-INR option) + its lines.
-    const pick = (q: QuoteT | null) => {
-      if (!q) return { lines: [] as CmpLine[], chosen: null as OptionT | null };
-      if (q.options.length) {
-        const priced = q.options.filter((o) => Number(o.totalInr) > 0);
-        const chosen = (priced.length ? priced : q.options).reduce((a, b) =>
-          Number(a.totalInr) <= Number(b.totalInr) ? a : b,
-        );
-        return { lines: chosen.lines as CmpLine[], chosen };
-      }
-      return { lines: q.lines as CmpLine[], chosen: null };
-    };
 
-    // A column key groups by charge type; custom (chargeType-less) lines
-    // fall back to a description-based synthetic key so they still line up.
     const colKey = (l: { chargeTypeId: string | null; description: string | null }) =>
       l.chargeTypeId ?? `c:${(l.description ?? 'Other').trim().toLowerCase()}`;
-    const colName = (l: {
-      chargeType: { name: string } | null;
-      description: string | null;
-    }) => l.chargeType?.name ?? l.description ?? 'Other';
+    const colName = (l: { chargeType: { name: string } | null; description: string | null }) =>
+      l.chargeType?.name ?? l.description ?? 'Other';
+    const isBlank = (l: CmpLine) => !l.chargeTypeId && !(l.description ?? '').trim();
 
-    const columns = new Map<
-      string,
-      { id: string; name: string; category: ChargeCategory }
-    >();
-    // Seed columns from the enquiry's required charges so every requested
-    // line shows as a column even if a vendor left it blank.
-    for (const rc of enquiry.requiredCharges) {
-      columns.set(rc.chargeTypeId, {
-        id: rc.chargeTypeId,
-        name: rc.chargeType.name,
-        category: rc.chargeType.category,
-      });
-    }
+    // Columns (charge types) — each carries the currency its lines are quoted in.
+    const columns = new Map<string, { id: string; name: string; category: ChargeCategory; currency: string }>();
+    for (const rc of enquiry.requiredCharges)
+      columns.set(rc.chargeTypeId, { id: rc.chargeTypeId, name: rc.chargeType.name, category: rc.chargeType.category, currency: 'INR' });
     for (const ev of enquiry.enquiryVendors) {
       const q = ev.quotation;
       if (!q || q.status !== QuoteStatus.SUBMITTED) continue;
-      for (const line of pick(q).lines) {
-        if (!line.chargeTypeId && !(line.description ?? '').trim()) continue; // skip blank KPI lines
+      const src = (q.options.length ? q.options.flatMap((o) => o.lines) : q.lines) as CmpLine[];
+      for (const line of src) {
+        if (isBlank(line)) continue;
         const k = colKey(line);
-        if (!columns.has(k))
-          columns.set(k, {
-            id: k,
-            name: colName(line),
-            category: line.chargeType?.category ?? ChargeCategory.OTHER,
-          });
+        const cur = (line.currency ?? 'INR').toUpperCase();
+        const existing = columns.get(k);
+        if (!existing)
+          columns.set(k, { id: k, name: colName(line), category: line.chargeType?.category ?? ChargeCategory.OTHER, currency: cur });
+        else existing.currency = cur;
       }
     }
 
-    const vendors = enquiry.enquiryVendors.map((ev) => {
+    // One comparison column per OPTION (so every shipping-line option shows), in
+    // native currency; a legacy/non-option or not-yet-submitted quote = one column.
+    const buildEntry = (
+      ev: (typeof enquiry.enquiryVendors)[number],
+      opt: OptionT | null,
+      dispLines: CmpLine[],
+      submitted: boolean,
+    ) => {
       const q = ev.quotation;
-      const submitted = !!q && q.status === QuoteStatus.SUBMITTED;
-      const { lines: displayLines, chosen } = pick(q);
       const lines: Record<string, number> = {};
       const categoryTotals: Partial<Record<ChargeCategory, number>> = {};
+      const totalByCurrency: Record<string, number> = {};
+      let rankInr = 0;
       if (submitted) {
-        for (const line of displayLines) {
-          if (!line.chargeTypeId && !(line.description ?? '').trim()) continue;
+        for (const line of dispLines) {
+          if (isBlank(line)) continue;
           const k = colKey(line);
-          const amt = toInr(Number(line.amount), line.currency);
+          const amt = Number(line.amount);
+          const cur = (line.currency ?? 'INR').toUpperCase();
           lines[k] = (lines[k] ?? 0) + amt;
           const cat = line.chargeType?.category ?? ChargeCategory.OTHER;
           categoryTotals[cat] = (categoryTotals[cat] ?? 0) + amt;
+          totalByCurrency[cur] = (totalByCurrency[cur] ?? 0) + amt;
+          rankInr += toInr(amt, cur);
         }
       }
-      // Schedule fields come from the chosen option (option-flow) or the quote (legacy).
-      const sched = chosen ?? q;
-      const total = submitted
-        ? chosen
-          ? Number(chosen.totalInr)
-          : Number(q!.totalAmount)
-        : null;
+      const sched = opt ?? q;
       return {
+        key: `${ev.id}:${opt?.id ?? 'x'}`,
         vendorId: ev.vendorId,
         enquiryVendorId: ev.id,
         name: ev.vendor.name,
+        optionId: opt?.id ?? null,
+        optionLabel: opt ? opt.shippingLine || opt.label || 'Option' : null,
         submitted,
         status: q?.status ?? QuoteStatus.PENDING,
-        currency: 'INR',
+        quotationId: q?.id ?? null,
         transitTimeDays: sched?.transitTimeDays ?? null,
         validUntil: q?.validUntil ?? null,
-        quotationId: q?.id ?? null,
         lines,
-        total,
+        totalByCurrency: submitted ? totalByCurrency : undefined,
+        rankInr: submitted ? r2(rankInr) : null,
         categoryTotals: submitted ? categoryTotals : undefined,
         rateType: sched?.rateType ?? undefined,
         freeDetentionOriginDays: sched?.freeDetentionOriginDays ?? undefined,
@@ -623,18 +607,16 @@ export class EnquiriesService {
         transshipments: sched?.transshipments ?? undefined,
         shippingLine: sched?.shippingLine ?? undefined,
         vesselName: sched?.vesselName ?? undefined,
-        // All options (for the award dropdown — pick which one to award).
-        options: (q?.options ?? []).map((o) => ({
-          optionId: o.id,
-          label: o.label,
-          shippingLine: o.shippingLine,
-          vesselName: o.vesselName,
-          etd: o.etd,
-          eta: o.eta,
-          transitTimeDays: o.transitTimeDays,
-          totalInr: Number(o.totalInr),
-        })),
       };
+    };
+
+    const vendors = enquiry.enquiryVendors.flatMap((ev) => {
+      const q = ev.quotation;
+      const submitted = !!q && q.status === QuoteStatus.SUBMITTED;
+      if (submitted && q!.options.length)
+        return q!.options.map((o) => buildEntry(ev, o, o.lines as CmpLine[], true));
+      if (submitted) return [buildEntry(ev, null, q!.lines as CmpLine[], true)];
+      return [buildEntry(ev, null, [], false)];
     });
 
     const history = await this.prisma.shipmentHistory.findMany({
@@ -667,6 +649,7 @@ export class EnquiriesService {
           ? { code: enquiry.destination.code, name: enquiry.destination.name }
           : null,
         awardedQuotationId: enquiry.award?.quotationId ?? null,
+        awardedOptionId: enquiry.award?.quotationOptionId ?? null,
         awardedReason: enquiry.award?.reason ?? null,
       },
       chargeTypes: [...columns.values()],

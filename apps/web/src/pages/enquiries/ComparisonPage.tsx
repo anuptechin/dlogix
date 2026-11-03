@@ -59,7 +59,6 @@ export default function ComparisonPage() {
   const [awardTarget, setAwardTarget] = useState<ComparisonVendor | null>(null);
   const [reason, setReason] = useState('');
   const [internalEmails, setInternalEmails] = useState<string[]>([]);
-  const [optionId, setOptionId] = useState<string | undefined>(undefined);
 
   const { data, isLoading } = useQuery({
     queryKey: ['comparison', id],
@@ -74,14 +73,13 @@ export default function ComparisonPage() {
         v.quotationId!,
         reason || undefined,
         internalEmails.length ? internalEmails : undefined,
-        optionId,
+        v.optionId ?? undefined,
       ),
     onSuccess: (_res, v) => {
       message.success(`Awarded to ${v.name} — feedback sent to all vendors.`);
       setAwardTarget(null);
       setReason('');
       setInternalEmails([]);
-      setOptionId(undefined);
       qc.invalidateQueries({ queryKey: ['comparison', id] });
       qc.invalidateQueries({ queryKey: ['enquiry', id] });
       qc.invalidateQueries({ queryKey: ['enquiries'] });
@@ -105,25 +103,37 @@ export default function ComparisonPage() {
   const { enquiry, chargeTypes, vendors, history } = data;
   const submitted = vendors.filter((v) => v.submitted);
   const awardedQid = enquiry.awardedQuotationId;
+  const awardedOid = enquiry.awardedOptionId ?? null;
   const isAwardedPhase = Boolean(awardedQid);
 
-  const lowestTotal = submitted.length
-    ? Math.min(...submitted.map((v) => v.total ?? Infinity))
-    : null;
-  const awardedVendor = vendors.find((v) => v.quotationId === awardedQid) ?? null;
+  // Each charge column + each category has its own quoted currency (USD / INR).
+  const curByCol = new Map(chargeTypes.map((c) => [c.id, c.currency ?? 'INR']));
+  const colCur = (ctId: string) => curByCol.get(ctId) ?? 'INR';
+  const catCur = (cat: string) =>
+    chargeTypes.find((c) => c.category === cat)?.currency ?? 'INR';
 
-  // Column highlight: gold if awarded, else teal on the lowest.
-  const colCls = (v: ComparisonVendor) => {
-    if (isAwardedPhase) return v.quotationId === awardedQid ? 'cmp__awarded' : '';
-    return v.submitted && v.total != null && v.total === lowestTotal
-      ? 'cmp__win'
-      : '';
-  };
+  // Cheapest is ranked on the INR equivalent, but displayed in native currency.
+  const lowestRank = submitted.length
+    ? Math.min(...submitted.map((v) => v.rankInr ?? Infinity))
+    : null;
+  const isAwarded = (v: ComparisonVendor) =>
+    v.quotationId === awardedQid && (v.optionId ?? null) === awardedOid;
+  const awardedVendor = vendors.find((v) => isAwarded(v)) ?? null;
   const isLowest = (v: ComparisonVendor) =>
-    !isAwardedPhase &&
-    v.submitted &&
-    v.total != null &&
-    v.total === lowestTotal;
+    !isAwardedPhase && v.submitted && v.rankInr != null && v.rankInr === lowestRank;
+  const colCls = (v: ComparisonVendor) => {
+    if (isAwardedPhase) return isAwarded(v) ? 'cmp__awarded' : '';
+    return isLowest(v) ? 'cmp__win' : '';
+  };
+
+  const totalStr = (v: ComparisonVendor) => {
+    const m = v.totalByCurrency;
+    if (!m) return '—';
+    const parts = Object.entries(m).map(([c, amt]) => money(amt, c));
+    return parts.length ? parts.join('  ·  ') : money(0, 'INR');
+  };
+  const colHead = (v: ComparisonVendor) =>
+    v.optionLabel ? `${v.name} — ${v.optionLabel}` : v.name;
 
   // BRD: landed-cost breakdown by charge category.
   const CAT_ORDER = ['FREIGHT', 'ORIGIN', 'DESTINATION', 'LOCAL', 'OTHER'] as const;
@@ -139,6 +149,7 @@ export default function ComparisonPage() {
   );
   const anyHas = (fn: (v: ComparisonVendor) => unknown) => submitted.some(fn);
   const isSea = enquiry.mode === 'LCL' || enquiry.mode === 'FCL';
+  const cheapest = lowestRank != null ? submitted.find((v) => v.rankInr === lowestRank) : undefined;
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -161,15 +172,13 @@ export default function ComparisonPage() {
             {MODE_LABEL[enquiry.mode] ?? enquiry.mode} ·{' '}
             {enquiry.origin?.code ?? enquiry.origin?.name ?? '—'} →{' '}
             {enquiry.destination?.code ?? enquiry.destination?.name ?? '—'}
-            {enquiry.chargeableWeight
-              ? ` · CW ${enquiry.chargeableWeight} kg`
-              : ''}
+            {enquiry.chargeableWeight ? ` · CW ${enquiry.chargeableWeight} kg` : ''}
           </Text>
         </Space>
       </Card>
 
       <Card
-        title={`Quote comparison (${submitted.length} of ${vendors.length} responded)`}
+        title={`Quote comparison (${submitted.length} option${submitted.length === 1 ? '' : 's'} across ${new Set(submitted.map((v) => v.vendorId)).size} vendor(s))`}
         extra={
           <Dropdown
             disabled={submitted.length === 0}
@@ -183,17 +192,15 @@ export default function ComparisonPage() {
                 if (key === 'csv') {
                   downloadCsv(
                     `lprms-comparison-${enquiry.enquiryNo}.csv`,
-                    ['Charge', ...vendors.map((v) => v.name)],
+                    ['Charge', ...vendors.map(colHead)],
                     [
                       ...chargeTypes.map((ct) => [
-                        ct.name,
+                        `${ct.name} (${colCur(ct.id)})`,
                         ...vendors.map((v) =>
-                          v.submitted && v.lines[ct.id] != null
-                            ? v.lines[ct.id]
-                            : '',
+                          v.submitted && v.lines[ct.id] != null ? v.lines[ct.id] : '',
                         ),
                       ]),
-                      ['Total', ...vendors.map((v) => (v.submitted ? v.total : ''))],
+                      ['Total', ...vendors.map((v) => (v.submitted ? totalStr(v) : ''))],
                       ['Transit (days)', ...vendors.map((v) => v.transitTimeDays ?? '')],
                       [
                         'Valid until',
@@ -209,29 +216,22 @@ export default function ComparisonPage() {
                     enquiry.enquiryNo,
                     [
                       { header: 'Charge', key: 'charge', width: 26 },
-                      ...vendors.map((v, i) => ({
-                        header: v.name,
-                        key: `v${i}`,
-                        width: 18,
-                        money: true,
-                      })),
+                      ...vendors.map((v, i) => ({ header: colHead(v), key: `v${i}`, width: 20 })),
                     ],
                     [
                       ...chargeTypes.map((ct) => ({
-                        charge: ct.name,
+                        charge: `${ct.name} (${colCur(ct.id)})`,
                         ...Object.fromEntries(
                           vendors.map((v, i) => [
                             `v${i}`,
-                            v.submitted && v.lines[ct.id] != null
-                              ? v.lines[ct.id]
-                              : null,
+                            v.submitted && v.lines[ct.id] != null ? v.lines[ct.id] : null,
                           ]),
                         ),
                       })),
                       {
                         charge: 'Total',
                         ...Object.fromEntries(
-                          vendors.map((v, i) => [`v${i}`, v.submitted ? v.total : null]),
+                          vendors.map((v, i) => [`v${i}`, v.submitted ? totalStr(v) : null]),
                         ),
                       },
                     ],
@@ -262,12 +262,9 @@ export default function ComparisonPage() {
                 style={{ marginBottom: 16 }}
                 message={
                   <>
-                    Awarded to <strong>{awardedVendor.name}</strong> at{' '}
-                    <strong>
-                      {money(awardedVendor.total, awardedVendor.currency)}
-                    </strong>
-                    . Confirmation sent to the winner; the others received blind
-                    feedback (no rate or vendor disclosed).
+                    Awarded to <strong>{colHead(awardedVendor)}</strong> at{' '}
+                    <strong>{totalStr(awardedVendor)}</strong>. Confirmation sent to the
+                    winner; the others received blind feedback (no rate or vendor disclosed).
                     {enquiry.awardedReason ? (
                       <div style={{ marginTop: 6 }}>
                         <strong>Remarks:</strong> {enquiry.awardedReason}
@@ -277,27 +274,16 @@ export default function ComparisonPage() {
                 }
               />
             ) : (
-              lowestTotal != null && (
+              cheapest && (
                 <Alert
                   type="success"
                   showIcon
                   style={{ marginBottom: 16 }}
                   message={
                     <>
-                      Lowest total:{' '}
-                      <strong>
-                        {money(
-                          lowestTotal,
-                          submitted.find((v) => v.total === lowestTotal)
-                            ?.currency,
-                        )}
-                      </strong>{' '}
-                      from{' '}
-                      <strong>
-                        {submitted.find((v) => v.total === lowestTotal)?.name}
-                      </strong>
-                      . Award on total value, service and validity — not price
-                      alone.
+                      Lowest total: <strong>{totalStr(cheapest)}</strong> from{' '}
+                      <strong>{colHead(cheapest)}</strong>. Award on total value, service
+                      and validity — not price alone.
                     </>
                   }
                 />
@@ -310,15 +296,11 @@ export default function ComparisonPage() {
                   <tr>
                     <th className="cmp__rowhead">Charge</th>
                     {vendors.map((v) => (
-                      <th key={v.vendorId} className={colCls(v)}>
+                      <th key={v.key} className={colCls(v)}>
                         <div className="cmp__vendor-name">{v.name}</div>
                         <div className="cmp__vendor-sub">
                           {v.submitted
-                            ? `${v.currency}${
-                                v.transitTimeDays != null
-                                  ? ` · ${v.transitTimeDays}d transit`
-                                  : ''
-                              }`
+                            ? `${v.optionLabel ?? 'Quote'}${v.transitTimeDays != null ? ` · ${v.transitTimeDays}d transit` : ''}`
                             : 'awaiting quote'}
                         </div>
                       </th>
@@ -328,11 +310,14 @@ export default function ComparisonPage() {
                 <tbody>
                   {chargeTypes.map((ct) => (
                     <tr key={ct.id}>
-                      <td className="cmp__rowhead">{ct.name}</td>
+                      <td className="cmp__rowhead">
+                        {ct.name}
+                        <span className="cmp__muted"> ({colCur(ct.id)})</span>
+                      </td>
                       {vendors.map((v) => (
-                        <td key={v.vendorId} className={`cmp__num ${colCls(v)}`}>
+                        <td key={v.key} className={`cmp__num ${colCls(v)}`}>
                           {v.submitted && v.lines[ct.id] != null ? (
-                            money(v.lines[ct.id], v.currency)
+                            money(v.lines[ct.id], colCur(ct.id))
                           ) : (
                             <span className="cmp__muted">—</span>
                           )}
@@ -343,13 +328,11 @@ export default function ComparisonPage() {
                   {activeCats.length > 1 &&
                     activeCats.map((cat) => (
                       <tr key={`cat-${cat}`} className="cmp__subtotal-row">
-                        <td className="cmp__rowhead cmp__rowhead--sub">
-                          {CAT_LABEL[cat]}
-                        </td>
+                        <td className="cmp__rowhead cmp__rowhead--sub">{CAT_LABEL[cat]}</td>
                         {vendors.map((v) => (
-                          <td key={v.vendorId} className={`cmp__num ${colCls(v)}`}>
+                          <td key={v.key} className={`cmp__num ${colCls(v)}`}>
                             {v.submitted && v.categoryTotals?.[cat] != null ? (
-                              money(v.categoryTotals[cat]!, v.currency)
+                              money(v.categoryTotals[cat]!, catCur(cat))
                             ) : (
                               <span className="cmp__muted">—</span>
                             )}
@@ -358,18 +341,14 @@ export default function ComparisonPage() {
                       </tr>
                     ))}
                   <tr className="cmp__total-row">
-                    <td className="cmp__rowhead">Total landed cost</td>
+                    <td className="cmp__rowhead">Total</td>
                     {vendors.map((v) => (
-                      <td key={v.vendorId} className={`cmp__num ${colCls(v)}`}>
+                      <td key={v.key} className={`cmp__num ${colCls(v)}`}>
                         {v.submitted ? (
                           <>
-                            {money(v.total, v.currency)}
-                            {v.quotationId === awardedQid && (
-                              <span className="cmp__awardtag">Awarded</span>
-                            )}
-                            {isLowest(v) && (
-                              <span className="cmp__lowtag">Lowest</span>
-                            )}
+                            {totalStr(v)}
+                            {isAwarded(v) && <span className="cmp__awardtag">Awarded</span>}
+                            {isLowest(v) && <span className="cmp__lowtag">Lowest</span>}
                           </>
                         ) : (
                           <span className="cmp__awaiting">Awaiting</span>
@@ -380,10 +359,8 @@ export default function ComparisonPage() {
                   <tr>
                     <td className="cmp__rowhead">Valid until</td>
                     {vendors.map((v) => (
-                      <td key={v.vendorId} className={colCls(v)}>
-                        {v.validUntil
-                          ? dayjs(v.validUntil).format('DD MMM YYYY')
-                          : '—'}
+                      <td key={v.key} className={colCls(v)}>
+                        {v.validUntil ? dayjs(v.validUntil).format('DD MMM YYYY') : '—'}
                       </td>
                     ))}
                   </tr>
@@ -391,7 +368,7 @@ export default function ComparisonPage() {
                     <tr>
                       <td className="cmp__rowhead">Rate type</td>
                       {vendors.map((v) => (
-                        <td key={v.vendorId} className={colCls(v)}>
+                        <td key={v.key} className={colCls(v)}>
                           {v.rateType === 'CONTRACT' ? (
                             <Tag color="purple">Contract</Tag>
                           ) : v.rateType === 'SPOT' ? (
@@ -407,7 +384,7 @@ export default function ComparisonPage() {
                     <tr>
                       <td className="cmp__rowhead">{isSea ? 'Shipping line' : 'Airline'}</td>
                       {vendors.map((v) => (
-                        <td key={v.vendorId} className={colCls(v)}>
+                        <td key={v.key} className={colCls(v)}>
                           {v.shippingLine ?? '—'}
                           {v.vesselName ? ` · ${v.vesselName}` : ''}
                         </td>
@@ -418,13 +395,11 @@ export default function ComparisonPage() {
                     <tr>
                       <td className="cmp__rowhead">ETD → ETA</td>
                       {vendors.map((v) => (
-                        <td key={v.vendorId} className={colCls(v)}>
+                        <td key={v.key} className={colCls(v)}>
                           {v.etd ? dayjs(v.etd).format('DD MMM') : '—'}
                           {' → '}
                           {v.eta ? dayjs(v.eta).format('DD MMM') : '—'}
-                          {v.transshipments != null
-                            ? ` · ${v.transshipments} T/S`
-                            : ''}
+                          {v.transshipments != null ? ` · ${v.transshipments} T/S` : ''}
                         </td>
                       ))}
                     </tr>
@@ -445,10 +420,8 @@ export default function ComparisonPage() {
                         ];
                         const has = parts.some((p) => p != null);
                         return (
-                          <td key={v.vendorId} className={colCls(v)}>
-                            {has
-                              ? parts.map((p) => (p == null ? '—' : `${p}d`)).join(' / ')
-                              : '—'}
+                          <td key={v.key} className={colCls(v)}>
+                            {has ? parts.map((p) => (p == null ? '—' : `${p}d`)).join(' / ') : '—'}
                           </td>
                         );
                       })}
@@ -459,7 +432,7 @@ export default function ComparisonPage() {
                       <td className="cmp__rowhead">Decision</td>
                       {vendors.map((v) => (
                         <td
-                          key={v.vendorId}
+                          key={v.key}
                           className={`cmp__decision-cell ${colCls(v)}`}
                           style={{ textAlign: 'right' }}
                         >
@@ -468,14 +441,7 @@ export default function ComparisonPage() {
                               size="small"
                               type={isLowest(v) ? 'primary' : 'default'}
                               icon={<TrophyOutlined />}
-                              onClick={() => {
-                                setAwardTarget(v);
-                                // default to the vendor's lowest-₹ option
-                                const best = (v.options ?? [])
-                                  .slice()
-                                  .sort((a, b) => a.totalInr - b.totalInr)[0];
-                                setOptionId(best?.optionId);
-                              }}
+                              onClick={() => setAwardTarget(v)}
                             >
                               Award
                             </Button>
@@ -523,7 +489,7 @@ export default function ComparisonPage() {
       </Card>
 
       <Modal
-        title={`Award to ${awardTarget?.name ?? ''}`}
+        title={`Award ${awardTarget ? colHead(awardTarget) : ''}`}
         open={Boolean(awardTarget)}
         onCancel={() => setAwardTarget(null)}
         onOk={() => awardTarget && awardMut.mutate(awardTarget)}
@@ -531,31 +497,17 @@ export default function ComparisonPage() {
         okText="Confirm award"
       >
         <p>
-          Awarding{' '}
-          <strong>{money(awardTarget?.total ?? null, awardTarget?.currency)}</strong>{' '}
-          to <strong>{awardTarget?.name}</strong>. The winner gets a
-          confirmation; other vendors get generic feedback with no rate or
-          vendor disclosed. This can’t be undone.
+          Awarding <strong>{awardTarget ? totalStr(awardTarget) : '—'}</strong> to{' '}
+          <strong>{awardTarget?.name}</strong>
+          {awardTarget?.optionLabel ? (
+            <>
+              {' '}on <strong>{awardTarget.optionLabel}</strong>
+            </>
+          ) : null}
+          . The winner gets a confirmation; other vendors get generic feedback with no
+          rate or vendor disclosed. This can’t be undone.
         </p>
-        {(awardTarget?.options?.length ?? 0) > 1 && (
-          <>
-            <label style={{ display: 'block', marginBottom: 6, color: '#64788c' }}>
-              Shipping option to award
-            </label>
-            <Select
-              value={optionId}
-              onChange={setOptionId}
-              style={{ width: '100%', marginBottom: 14 }}
-              options={(awardTarget?.options ?? []).map((o, i) => ({
-                value: o.optionId,
-                label: `${o.shippingLine || `Option ${i + 1}`}${o.etd ? ` · ETD ${String(o.etd).slice(0, 10)}` : ''} — ${money(o.totalInr, 'INR')}`,
-              }))}
-            />
-          </>
-        )}
-        <label
-          style={{ display: 'block', marginBottom: 6, color: '#64788c' }}
-        >
+        <label style={{ display: 'block', marginBottom: 6, color: '#64788c' }}>
           Reason for award (recorded for audit)
         </label>
         <Input.TextArea
