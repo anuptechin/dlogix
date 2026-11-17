@@ -333,6 +333,7 @@ export default function EnquiryFormPage() {
       </Space>
 
       <Form
+        className="enq-form"
         form={form}
         layout="vertical"
         requiredMark="optional"

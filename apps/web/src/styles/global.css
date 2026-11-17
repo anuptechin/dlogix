@@ -105,3 +105,29 @@ body {
 .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover {
   filter: brightness(1.06);
 }
+
+/* ── Mobile layout (phones / small tablets) ─────────────────────────────────
+   The app shell switches to a drawer nav below lg (see AppShell.tsx). These
+   rules keep page content legible at phone widths without touching the
+   already-responsive pages (courier/dashboard/audit use xs/sm Col spans). */
+@media (max-width: 767px) {
+  /* Wide data tables scroll horizontally instead of breaking the layout. */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+  /* Give cards a little more room edge-to-edge on small screens. */
+  .ant-card-body {
+    padding: 16px;
+  }
+  /* Page section headings / titles shouldn't be oversized on phones. */
+  .ant-page-header-heading-title {
+    font-size: 18px;
+  }
+  /* The enquiry form uses fixed span={8}/span={12} columns — stack them to a
+     single column on phones so fields aren't crushed. Scoped to the form so
+     deliberately responsive grids elsewhere are left as-is. */
+  .enq-form .ant-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}

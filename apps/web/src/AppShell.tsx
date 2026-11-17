@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
-import { Layout, Menu, Typography, Tag, Spin, Button, Dropdown, Avatar } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { useEffect, useState } from 'react';
+import { Layout, Menu, Typography, Tag, Spin, Button, Dropdown, Avatar, Drawer, Grid } from 'antd';
+import { LogoutOutlined, UserOutlined, MenuOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getHealth, logLoginEvent, logout } from './api/client';
@@ -8,6 +8,7 @@ import { useSession, canManage, isAdmin, isEndUser, canOps } from './auth/useSes
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 function HealthBadge() {
   const { data, isLoading, isError } = useQuery({
@@ -64,6 +65,9 @@ export default function AppShell() {
   const qc = useQueryClient();
   const { data: me } = useSession();
   const role = me?.role;
+  const screens = useBreakpoint();
+  const isMobile = !screens.lg; // phones + small tablets use the drawer nav
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const nav = isEndUser(role)
     ? NAV.filter((n) => n.endUserOk)
@@ -99,55 +103,82 @@ export default function AppShell() {
     NAV.filter((n) => location.pathname === n.path || (n.path !== '/app' && location.pathname.startsWith(n.path)))
       .sort((a, b) => b.path.length - a.path.length)[0]?.key ?? 'dashboard';
 
+  const logoEl = (
+    <Link
+      to="/"
+      onClick={() => setDrawerOpen(false)}
+      style={{
+        display: 'block',
+        padding: '22px 18px 16px',
+        textAlign: 'center',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          background: '#fff',
+          borderRadius: 12,
+          padding: '10px 16px',
+          boxShadow: '0 8px 20px -10px rgba(0,0,0,0.5)',
+        }}
+      >
+        <img
+          src="/dlogix-logo.png"
+          alt="Dlogix"
+          style={{ height: 34, display: 'block' }}
+        />
+      </span>
+      <div
+        style={{
+          color: 'rgba(255,255,255,0.55)',
+          fontSize: 9.5,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          marginTop: 10,
+        }}
+      >
+        Your Global Trade Partner
+      </div>
+    </Link>
+  );
+
+  const menuEl = (
+    <Menu
+      theme="dark"
+      mode="inline"
+      selectedKeys={[selected]}
+      onClick={({ key }) => {
+        const item = nav.find((n) => n.key === key);
+        if (item) navigate(item.path);
+        setDrawerOpen(false);
+      }}
+      items={nav.map(({ key, label }) => ({ key, label }))}
+    />
+  );
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark">
-        <Link
-          to="/"
-          style={{
-            display: 'block',
-            padding: '22px 18px 16px',
-            textAlign: 'center',
+      {isMobile ? (
+        <Drawer
+          placement="left"
+          width={240}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          closable={false}
+          styles={{
+            body: { padding: 0, background: 'var(--brand-navy, #0a2a4e)' },
+            header: { display: 'none' },
           }}
         >
-          <span
-            style={{
-              display: 'inline-flex',
-              background: '#fff',
-              borderRadius: 12,
-              padding: '10px 16px',
-              boxShadow: '0 8px 20px -10px rgba(0,0,0,0.5)',
-            }}
-          >
-            <img
-              src="/dlogix-logo.png"
-              alt="Dlogix"
-              style={{ height: 34, display: 'block' }}
-            />
-          </span>
-          <div
-            style={{
-              color: 'rgba(255,255,255,0.55)',
-              fontSize: 9.5,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginTop: 10,
-            }}
-          >
-            Your Global Trade Partner
-          </div>
-        </Link>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selected]}
-          onClick={({ key }) => {
-            const item = nav.find((n) => n.key === key);
-            if (item) navigate(item.path);
-          }}
-          items={nav.map(({ key, label }) => ({ key, label }))}
-        />
-      </Sider>
+          {logoEl}
+          {menuEl}
+        </Drawer>
+      ) : (
+        <Sider theme="dark">
+          {logoEl}
+          {menuEl}
+        </Sider>
+      )}
       <Layout>
         <Header
           style={{
@@ -155,14 +186,30 @@ export default function AppShell() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingInline: 24,
+            paddingInline: isMobile ? 14 : 24,
+            gap: 8,
           }}
         >
-          <Text strong style={{ color: '#0a2a4e' }}>
-            Dlogix — Logistics Procurement &amp; Rate Management
-          </Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {isMobile && (
+              <Button
+                type="text"
+                aria-label="Open menu"
+                icon={<MenuOutlined />}
+                onClick={() => setDrawerOpen(true)}
+                style={{ fontSize: 18 }}
+              />
+            )}
+            <Text
+              strong
+              ellipsis
+              style={{ color: '#0a2a4e', fontSize: isMobile ? 15 : undefined }}
+            >
+              {isMobile ? 'Dlogix' : 'Dlogix — Logistics Procurement & Rate Management'}
+            </Text>
+          </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <HealthBadge />
+            {!isMobile && <HealthBadge />}
             {me && (
               <Dropdown
                 menu={{
@@ -185,20 +232,22 @@ export default function AppShell() {
               >
                 <Button type="text" style={{ height: 'auto', padding: '4px 8px' }}>
                   <Avatar size="small" icon={<UserOutlined />} style={{ background: '#1e7fe6' }} />
-                  <span style={{ marginLeft: 8, textAlign: 'left' }}>
-                    <span style={{ display: 'block', fontWeight: 600, fontSize: 13, color: '#0a2a4e', lineHeight: 1.1 }}>
-                      {me.name}
+                  {!isMobile && (
+                    <span style={{ marginLeft: 8, textAlign: 'left' }}>
+                      <span style={{ display: 'block', fontWeight: 600, fontSize: 13, color: '#0a2a4e', lineHeight: 1.1 }}>
+                        {me.name}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: '#8798ac', lineHeight: 1.1 }}>
+                        {ROLE_LABEL[me.role] ?? me.role}
+                      </span>
                     </span>
-                    <span style={{ display: 'block', fontSize: 11, color: '#8798ac', lineHeight: 1.1 }}>
-                      {ROLE_LABEL[me.role] ?? me.role}
-                    </span>
-                  </span>
+                  )}
                 </Button>
               </Dropdown>
             )}
           </div>
         </Header>
-        <Content style={{ margin: 24 }}>
+        <Content style={{ margin: isMobile ? 12 : 24 }}>
           <Outlet />
         </Content>
       </Layout>
