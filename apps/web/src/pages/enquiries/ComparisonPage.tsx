@@ -132,6 +132,15 @@ export default function ComparisonPage() {
     const parts = Object.entries(m).map(([c, amt]) => money(amt, c));
     return parts.length ? parts.join('  ·  ') : money(0, 'INR');
   };
+  // Effective per-kg cost = total ÷ chargeable weight (so the team doesn't
+  // hand-calculate it). Shown per currency; hidden when there's no CW (e.g. FCL).
+  const cw = Number(enquiry.chargeableWeight) || 0;
+  const perKgStr = (v: ComparisonVendor) => {
+    const m = v.totalByCurrency;
+    if (!m || !cw) return '—';
+    const parts = Object.entries(m).map(([c, amt]) => `${money(amt / cw, c)}/kg`);
+    return parts.length ? parts.join('  ·  ') : '—';
+  };
   const colHead = (v: ComparisonVendor) =>
     v.optionLabel ? `${v.name} — ${v.optionLabel}` : v.name;
 
@@ -201,6 +210,14 @@ export default function ComparisonPage() {
                         ),
                       ]),
                       ['Total', ...vendors.map((v) => (v.submitted ? totalStr(v) : ''))],
+                      ...(cw > 0
+                        ? [
+                            [
+                              'Per kg (on total)',
+                              ...vendors.map((v) => (v.submitted ? perKgStr(v) : '')),
+                            ],
+                          ]
+                        : []),
                       ['Transit (days)', ...vendors.map((v) => v.transitTimeDays ?? '')],
                       [
                         'Valid until',
@@ -234,6 +251,19 @@ export default function ComparisonPage() {
                           vendors.map((v, i) => [`v${i}`, v.submitted ? totalStr(v) : null]),
                         ),
                       },
+                      ...(cw > 0
+                        ? [
+                            {
+                              charge: 'Per kg (on total)',
+                              ...Object.fromEntries(
+                                vendors.map((v, i) => [
+                                  `v${i}`,
+                                  v.submitted ? perKgStr(v) : null,
+                                ]),
+                              ),
+                            },
+                          ]
+                        : []),
                     ],
                   );
                 } else if (key === 'pdf') {
@@ -356,6 +386,23 @@ export default function ComparisonPage() {
                       </td>
                     ))}
                   </tr>
+                  {cw > 0 && (
+                    <tr>
+                      <td className="cmp__rowhead">
+                        Per kg
+                        <span className="cmp__muted"> (on total · CW {cw} kg)</span>
+                      </td>
+                      {vendors.map((v) => (
+                        <td key={v.key} className={`cmp__num ${colCls(v)}`}>
+                          {v.submitted ? (
+                            perKgStr(v)
+                          ) : (
+                            <span className="cmp__muted">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
                   <tr>
                     <td className="cmp__rowhead">Valid until</td>
                     {vendors.map((v) => (

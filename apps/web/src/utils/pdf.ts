@@ -56,6 +56,14 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
     const parts = Object.entries(m).map(([c, amt]) => money(amt, c));
     return parts.length ? parts.join('  ·  ') : money(0, 'INR');
   };
+  const cw = Number(e.chargeableWeight) || 0;
+  const perKgStr = (v: V) => {
+    const m = v.totalByCurrency;
+    if (!m || !cw) return '—';
+    return Object.entries(m)
+      .map(([c, amt]) => `${money(amt / cw, c)}/kg`)
+      .join('  ·  ');
+  };
   const lowest = submitted.length
     ? Math.min(...submitted.map((v) => v.rankInr ?? Infinity))
     : null;
@@ -102,6 +110,15 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
       cell(v.submitted ? totalStr(v) : 'Awaiting', v.key === winnerKey, 'total'),
     ),
   ];
+  const perKgRow =
+    cw > 0
+      ? [
+          { text: `Per kg (on total · CW ${cw} kg)`, style: 'rowhead' },
+          ...vendors.map((v) =>
+            cell(v.submitted ? perKgStr(v) : '—', v.key === winnerKey, 'num'),
+          ),
+        ]
+      : null;
   const transitRow = [
     { text: 'Transit (days)', style: 'rowhead' },
     ...vendors.map((v) =>
@@ -174,7 +191,14 @@ export async function exportComparisonPdf(cmp: Comparison): Promise<void> {
         table: {
           headerRows: 1,
           widths: ['*', ...vendors.map(() => 'auto')],
-          body: [headerRow, ...bodyRows, totalRow, transitRow, validRow],
+          body: [
+            headerRow,
+            ...bodyRows,
+            totalRow,
+            ...(perKgRow ? [perKgRow] : []),
+            transitRow,
+            validRow,
+          ],
         },
         layout: {
           hLineColor: () => '#e4eaf0',
