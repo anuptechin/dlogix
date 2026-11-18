@@ -212,6 +212,7 @@ async function main() {
     { code: 'CIP', name: 'Carriage & Insurance Paid To', shownFields: ['Named Place', 'Insurance Value'], sortOrder: 7 },
     { code: 'DAP', name: 'Delivered At Place', shownFields: ['Delivery Address', 'Final Transport'], sortOrder: 8 },
     { code: 'DDP', name: 'Delivered Duty Paid', shownFields: ['Delivery Address', 'Customs Broker', 'Duty Responsibility', 'Last Mile Delivery'], sortOrder: 9 },
+    { code: 'DDU', name: 'Delivered Duty Unpaid', shownFields: ['Delivery Address', 'Final Transport', 'Duty Responsibility'], sortOrder: 10 },
   ];
   for (const it of incoterms) {
     const existing = await prisma.incoterm.findUnique({ where: { code: it.code } });
