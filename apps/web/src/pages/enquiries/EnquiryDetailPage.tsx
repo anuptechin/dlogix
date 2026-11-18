@@ -251,7 +251,7 @@ export default function EnquiryDetailPage() {
           </Descriptions.Item>
           <Descriptions.Item label="Quote deadline">
             {enq.quoteDeadline
-              ? new Date(enq.quoteDeadline).toLocaleString()
+              ? dayjs(enq.quoteDeadline).format('DD MMM YYYY, HH:mm')
               : '—'}
           </Descriptions.Item>
           <Descriptions.Item label="Cargo" span={3}>

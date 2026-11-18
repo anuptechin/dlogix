@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Alert,
   Button,
@@ -151,7 +152,7 @@ export default function RateCardsPage() {
           extra={
             <Text type="secondary">
               {card.countries} countries · {card.rateRows} rate rows · updated{' '}
-              {new Date(card.updatedAt).toLocaleDateString()}
+              {dayjs(card.updatedAt).format('DD MMM YYYY')}
             </Text>
           }
         >

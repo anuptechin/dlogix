@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, Select, Space, Table, Tag, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { EnquiryStatus } from '@lprms/shared';
@@ -67,8 +68,7 @@ export default function EnquiriesPage() {
           {
             title: 'Date',
             dataIndex: 'createdAt',
-            render: (v: string | null) =>
-              v ? new Date(v).toLocaleDateString() : '—',
+            render: (v: string | null) => (v ? dayjs(v).format('DD MMM YYYY') : '—'),
           },
           {
             title: 'Direction',
@@ -97,8 +97,7 @@ export default function EnquiriesPage() {
           {
             title: 'Deadline',
             dataIndex: 'quoteDeadline',
-            render: (v: string | null) =>
-              v ? new Date(v).toLocaleDateString() : '—',
+            render: (v: string | null) => (v ? dayjs(v).format('DD MMM YYYY') : '—'),
           },
           {
             title: 'Status',
