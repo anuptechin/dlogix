@@ -65,6 +65,12 @@ export default function EnquiriesPage() {
             render: (v) => <strong>{v}</strong>,
           },
           {
+            title: 'Date',
+            dataIndex: 'createdAt',
+            render: (v: string | null) =>
+              v ? new Date(v).toLocaleDateString() : '—',
+          },
+          {
             title: 'Direction',
             dataIndex: 'direction',
             render: (v) => <Tag>{v}</Tag>,
